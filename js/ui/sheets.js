@@ -3,7 +3,7 @@ import { t, lang } from '../core/i18n.js';
 import { formatTime } from '../core/format.js';
 import { getSettings, setSetting, subscribe } from '../core/settings.js';
 import { loadStats, currentStreak, resetStats } from '../core/stats.js';
-import { GAMES, LEVELS } from '../games/registry.js';
+import { GAMES, levelKeys, levelLabel } from '../games/registry.js';
 import { openSheet, segmented, switchRow } from './components.js';
 
 export function openSettings() {
@@ -65,11 +65,11 @@ export function openStats() {
       }
       body.append(h('div', { class: 'streak' }, h('span', { class: 'streak-n' }, t('stats.days', { n: streak })), h('span', { class: 'row-hint' }, t('stats.streak'))));
       for (const g of played) {
-        const rows = LEVELS.filter((l) => stats.games[g.id][l]).map((l) => {
+        const rows = levelKeys(g.id).filter((l) => stats.games[g.id][l]).map((l) => {
           const s = stats.games[g.id][l];
           const bits = [t('stats.done', { n: s.done })];
           if (s.timed) bits.push(t('stats.avg', { time: formatTime(s.sum / s.timed) }), t('stats.best', { time: formatTime(s.best) }));
-          return h('li', {}, h('span', { class: 'stat-level' }, t(`level.${l}`)), h('span', { class: 'stat-bits' }, bits.join(', ')));
+          return h('li', {}, h('span', { class: 'stat-level' }, levelLabel(l)), h('span', { class: 'stat-bits' }, bits.join(', ')));
         });
         body.append(h('section', { class: 'stat-block' }, h('h3', {}, t(`game.${g.id}.name`)), h('ul', { class: 'stat-list' }, rows)));
       }

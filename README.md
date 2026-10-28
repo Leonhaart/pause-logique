@@ -50,3 +50,11 @@ Sur téléphone : ouvrir l'adresse, puis "Ajouter à l'écran d'accueil" (iOS : 
 - `ctx.isPaused()`
 
 Les erreurs ne sont jamais punies : le réglage `errors` ne change que l'affichage.
+
+## Star Battle
+
+- Règles : 1 étoile par ligne, colonne et région, jamais deux étoiles voisines.
+- 3 tailles (8×8, 10×10, 12×12), 3 difficultés. Niveau dans l'URL : `hard-12`.
+- Banque : `js/games/starbattle/bank.js`, 100 grilles par taille (25/50/25). Régénération : `node tools/gen-bank-starbattle.mjs` (environ 3 minutes).
+- Stock local : une grille terminée est consommée, un worker (`worker.js`) refabrique seulement celles qui manquent, stockées dans le navigateur.
+- Difficulté : mesurée par un solveur à techniques (`solver.js`), jamais au hasard. Facile : déductions simples. Moyen : ensembles de 2 zones et peu d'essais logiques. Difficile : beaucoup d'essais logiques ou ensembles de 3 zones et plus. Seuils par taille dans `generator.js`.

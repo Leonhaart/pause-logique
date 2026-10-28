@@ -7,7 +7,7 @@ import { saveGame, loadSave, clearSave } from '../core/saves.js';
 import { recordWin } from '../core/stats.js';
 import { getSettings, subscribe } from '../core/settings.js';
 import { hashes } from '../core/router.js';
-import { getGame, importGame } from '../games/registry.js';
+import { getGame, importGame, levelLabel } from '../games/registry.js';
 import { iconButton, iconEl, openSheet } from './components.js';
 import { openSettings } from './sheets.js';
 
@@ -39,7 +39,7 @@ export function mountPlay(root, route, nav) {
   const screen = h('section', { class: 'screen play' },
     h('header', { class: 'topbar play-top' },
       iconButton('back', t('nav.back'), () => nav.go(hashes.levels(gameId))),
-      h('div', { class: 'play-title' }, h('span', { class: 'play-game' }, t(`game.${gameId}.name`)), h('span', { class: 'play-level' }, t(`level.${level}`))),
+      h('div', { class: 'play-title' }, h('span', { class: 'play-game' }, t(`game.${gameId}.name`)), h('span', { class: 'play-level' }, levelLabel(level))),
       h('div', { class: 'topbar-actions' }, timerBtn, settingsBtn)),
     h('div', { class: 'play-main' }, host, overlay));
   root.replaceChildren(screen);

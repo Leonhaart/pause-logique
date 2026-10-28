@@ -3,7 +3,7 @@ import { t } from '../core/i18n.js';
 import { newSeed } from '../core/rng.js';
 import { latestSave } from '../core/saves.js';
 import { hashes } from '../core/router.js';
-import { GAMES, LEVELS, getGame } from '../games/registry.js';
+import { GAMES, getGame, randomLevel } from '../games/registry.js';
 import { gameIcon } from './icons.js';
 import { iconButton, iconEl } from './components.js';
 import { openSettings, openStats } from './sheets.js';
@@ -32,7 +32,7 @@ export function mountHome(root, nav) {
   const surprise = () => {
     const pool = ready.length ? ready : GAMES;
     const g = pool[Math.floor(Math.random() * pool.length)];
-    const level = LEVELS[Math.floor(Math.random() * LEVELS.length)];
+    const level = randomLevel(g.id);
     nav.go(hashes.play(g.id, level, newSeed()));
   };
 

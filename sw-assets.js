@@ -1,8 +1,9 @@
 // Fichier généré par tools/gen-sw-assets.mjs, ne pas modifier à la main.
-self.APP_VERSION = "05a2442124";
+self.APP_VERSION = "ee714c35ff";
 self.APP_ASSETS = [
   "./",
   "css/games.css",
+  "css/starbattle.css",
   "css/style.css",
   "css/sudoku.css",
   "icons/apple-touch-icon.png",
@@ -23,6 +24,14 @@ self.APP_ASSETS = [
   "js/core/timer.js",
   "js/games/placeholder.js",
   "js/games/registry.js",
+  "js/games/starbattle/bank.js",
+  "js/games/starbattle/generator.js",
+  "js/games/starbattle/index.js",
+  "js/games/starbattle/pool.js",
+  "js/games/starbattle/puzzle.js",
+  "js/games/starbattle/solver.js",
+  "js/games/starbattle/transform.js",
+  "js/games/starbattle/worker.js",
   "js/games/sudoku/bank.js",
   "js/games/sudoku/generator.js",
   "js/games/sudoku/index.js",
