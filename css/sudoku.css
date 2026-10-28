@@ -5,7 +5,7 @@
   container-type: inline-size;
   display: grid; grid-template-columns: repeat(9, 1fr); grid-template-rows: repeat(9, 1fr);
   aspect-ratio: 1;
-  width: min(100%, 520px, max(260px, calc(100dvh - 360px)));
+  width: min(100%, 520px, max(260px, calc(100dvh - 300px)));
   max-width: none;
   align-self: center;
   background: var(--surface);
@@ -15,7 +15,7 @@
 .sd-cell {
   position: relative; display: grid; place-items: center;
   border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
-  font: 500 5.6cqw/1 var(--sans); font-variant-numeric: tabular-nums;
+  font: 500 6.6cqw/1 var(--sans); font-variant-numeric: tabular-nums;
   cursor: pointer; min-width: 0; min-height: 0;
 }
 .sd-cell.c2, .sd-cell.c5 { border-right: 3px solid var(--ink); }
@@ -34,7 +34,7 @@
 .sd-notes {
   position: absolute; inset: 2px;
   display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
-  font: 600 2.3cqw/1 var(--sans); color: var(--ink-2); pointer-events: none;
+  font: 600 2.9cqw/1 var(--sans); color: var(--ink-2); pointer-events: none;
 }
 .sd-notes span { display: grid; place-items: center; }
 .sd-notes span.hl { color: var(--accent); font-weight: 800; }
@@ -57,6 +57,7 @@
 @media (max-width: 380px) { .sd-key { font-size: 19px; min-height: 52px; } }
 
 @media (max-width: 699px) {
+  .screen.play { padding-left: max(6px, env(safe-area-inset-left)); padding-right: max(6px, env(safe-area-inset-right)); }
   .sd .tools { margin-top: auto; }
   .sd { padding-bottom: 4px; }
 }

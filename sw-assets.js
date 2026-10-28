@@ -1,5 +1,5 @@
 // Fichier généré par tools/gen-sw-assets.mjs, ne pas modifier à la main.
-self.APP_VERSION = "60d6d65971";
+self.APP_VERSION = "05a2442124";
 self.APP_ASSETS = [
   "./",
   "css/games.css",
