@@ -1,3 +1,4 @@
+import { h } from './core/dom.js';
 import { setLanguage, t } from './core/i18n.js';
 import { getSettings, applySettings, subscribe } from './core/settings.js';
 import { parseHash, hashes } from './core/router.js';
@@ -46,5 +47,15 @@ window.addEventListener('hashchange', render);
 render();
 
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  // Si une nouvelle version prend le contrôle alors que l'app est déjà ouverte : proposer de recharger.
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController || document.querySelector('.update-banner')) return;
+    document.body.append(
+      h('div', { class: 'update-banner', role: 'status' },
+        h('span', {}, t('update.ready')),
+        h('button', { class: 'btn btn-primary', onClick: () => location.reload() }, t('update.reload'))),
+    );
+  });
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }

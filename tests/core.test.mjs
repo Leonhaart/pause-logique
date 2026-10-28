@@ -128,3 +128,22 @@ test('service worker : sw-assets.js à jour (relancer node tools/gen-sw-assets.m
   assert.equal(readFileSync(new URL('../sw-assets.js', import.meta.url), 'utf8'), source);
   for (const must of ['./', 'index.html', 'js/main.js', 'css/style.css', 'manifest.webmanifest']) assert.ok(assets.includes(must), must);
 });
+
+import { History } from '../js/ui/kit.js';
+test('historique : annuler, refaire, nouvelle action vide le refaire', () => {
+  const hs = new History('a');
+  assert.equal(hs.commit('b'), true);
+  assert.equal(hs.commit('b'), false);
+  hs.commit('c');
+  assert.equal(hs.undo(), 'b');
+  assert.equal(hs.undo(), 'a');
+  assert.equal(hs.undo(), null);
+  assert.equal(hs.redo(), 'b');
+  hs.commit('d');
+  assert.equal(hs.canRedo, false);
+  assert.equal(hs.undo(), 'b');
+  const d = hs.dump(1);
+  assert.deepEqual(d, { snap: 'b', undo: ['a'], redo: ['d'] });
+  const again = new History(d.snap, { undo: d.undo, redo: d.redo });
+  assert.equal(again.redo(), 'd');
+});

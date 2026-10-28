@@ -28,6 +28,13 @@ Sur téléphone : ouvrir l'adresse, puis "Ajouter à l'écran d'accueil" (iOS : 
     js/games/    registre + un dossier par jeu
     js/i18n/     fr.js, en.js (mêmes clés, vérifié par test)
 
+## Sudoku
+
+- Solveur par techniques (candidats uniques, paires, triplets, intersections, X-Wing, Swordfish, XY-Wing) : `js/games/sudoku/solver.js`.
+- Niveau = technique la plus difficile requise : facile (candidats uniques), moyen (paires, intersections), difficile (X-Wing, XY-Wing, Swordfish).
+- Banque de 100 grilles (25 faciles, 50 moyennes, 25 difficiles) dans `js/games/sudoku/bank.js`, variées à l'infini par transformations qui conservent la difficulté.
+- Pour régénérer la banque : `node tools/gen-bank-sudoku.mjs`, puis `node tools/gen-sw-assets.mjs`.
+
 ## Ajouter un jeu
 
 1. Créer `js/games/<id>/index.js` : `export default { mount(container, ctx) { ...; return { destroy() {} }; } }`

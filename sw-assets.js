@@ -1,8 +1,10 @@
 // Fichier généré par tools/gen-sw-assets.mjs, ne pas modifier à la main.
-self.APP_VERSION = "bd4664155f";
+self.APP_VERSION = "60d6d65971";
 self.APP_ASSETS = [
   "./",
+  "css/games.css",
   "css/style.css",
+  "css/sudoku.css",
   "icons/apple-touch-icon.png",
   "icons/icon-192.png",
   "icons/icon-512.png",
@@ -21,12 +23,19 @@ self.APP_ASSETS = [
   "js/core/timer.js",
   "js/games/placeholder.js",
   "js/games/registry.js",
+  "js/games/sudoku/bank.js",
+  "js/games/sudoku/generator.js",
+  "js/games/sudoku/index.js",
+  "js/games/sudoku/puzzle.js",
+  "js/games/sudoku/solver.js",
+  "js/games/sudoku/transform.js",
   "js/i18n/en.js",
   "js/i18n/fr.js",
   "js/main.js",
   "js/ui/components.js",
   "js/ui/home.js",
   "js/ui/icons.js",
+  "js/ui/kit.js",
   "js/ui/levels.js",
   "js/ui/play.js",
   "js/ui/sheets.js",
