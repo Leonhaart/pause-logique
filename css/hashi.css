@@ -1,0 +1,24 @@
+/* Hashi */
+.ha { flex: 1; display: flex; flex-direction: column; gap: 10px; align-items: center; padding-top: 4px; }
+.ha > * { width: 100%; max-width: 560px; }
+.ha-board-wrap { width: min(100%, 560px, max(260px, calc(100dvh - 300px))); max-width: none; align-self: center; }
+.ha-board { aspect-ratio: 1; width: 100%; touch-action: none; user-select: none; -webkit-user-select: none; cursor: pointer; background: var(--surface); border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent); box-sizing: border-box; }
+.ha-board svg { width: 100%; height: 100%; display: block; }
+.ha-pt { fill: color-mix(in srgb, var(--ink) 18%, transparent); }
+.ha-bridge { stroke: var(--ink); stroke-width: 0.07; stroke-linecap: round; }
+.ha-bridge.bad { stroke: var(--danger); }
+.ha-glow { stroke: var(--accent); stroke-opacity: 0.35; stroke-width: 0.34; stroke-linecap: round; }
+.ha-isl circle { fill: var(--surface); stroke: var(--ink); stroke-width: 0.07; }
+.ha-isl text { font: 700 0.5px var(--sans); fill: var(--ink); text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.ha-isl.met circle { fill: color-mix(in srgb, var(--ok) 22%, var(--surface)); stroke: var(--ok); }
+.ha-isl.met text { fill: var(--ok); }
+.ha-isl.over circle { fill: color-mix(in srgb, var(--danger) 18%, var(--surface)); stroke: var(--danger); }
+.ha-isl.over text { fill: var(--danger); }
+.ha-isl.near circle { stroke-width: 0.12; stroke-dasharray: 0.16 0.12; }
+.ha-isl.sel circle { fill: var(--mark); stroke-width: 0.13; }
+.ha-isl.sel text { fill: #1a1a1a; }
+.ha-isl.hint-focus circle { stroke: var(--accent); stroke-width: 0.14; }
+.hint-cell { stroke: var(--accent); }
+@media (max-width: 699px) {
+  .ha .tools { margin-top: auto; }
+}

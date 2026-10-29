@@ -1,11 +1,12 @@
 // Fichier généré par tools/gen-sw-assets.mjs, ne pas modifier à la main.
-self.APP_VERSION = "41f4c23b65";
+self.APP_VERSION = "c6cac0a826";
 self.APP_ASSETS = [
   "./",
   "THIRD_PARTY_NOTICES.md",
   "css/akari.css",
   "css/futoshiki.css",
   "css/games.css",
+  "css/hashi.css",
   "css/nonogram.css",
   "css/starbattle.css",
   "css/style.css",
@@ -46,6 +47,14 @@ self.APP_ASSETS = [
   "js/games/futoshiki/solver.js",
   "js/games/futoshiki/transform.js",
   "js/games/futoshiki/worker.js",
+  "js/games/hashi/bank.js",
+  "js/games/hashi/generator.js",
+  "js/games/hashi/index.js",
+  "js/games/hashi/pool.js",
+  "js/games/hashi/puzzle.js",
+  "js/games/hashi/solver.js",
+  "js/games/hashi/transform.js",
+  "js/games/hashi/worker.js",
   "js/games/nonogram/bank.js",
   "js/games/nonogram/generator.js",
   "js/games/nonogram/images.js",

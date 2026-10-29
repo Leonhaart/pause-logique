@@ -9,7 +9,7 @@ export const GAMES = [
   { id: 'starbattle', phase: 1, ready: true, sizes: [8, 10, 12] },
   { id: 'nonogram', phase: 1, ready: true, sizes: [5, 10, 15] },
   { id: 'futoshiki', phase: 2, ready: true, sizes: [4, 5, 6] },
-  { id: 'hashi', phase: 3, ready: false },
+  { id: 'hashi', phase: 3, ready: true, sizes: [7, 9, 11] },
   { id: 'takuzu', phase: 2, ready: true, sizes: [6, 8, 10] },
   { id: 'kakuro', phase: 3, ready: false },
   { id: 'akari', phase: 3, ready: true, sizes: [7, 9, 12] },
