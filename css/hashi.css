@@ -8,15 +8,20 @@
 .ha-bridge { stroke: var(--ink); stroke-width: 0.09; stroke-linecap: round; }
 .ha-bridge.bad { stroke: var(--danger); }
 .ha-glow { stroke: var(--accent); stroke-opacity: 0.35; stroke-width: 0.34; stroke-linecap: round; }
-.ha-land { fill: #ecd9a0; stroke: #5b4a1f; stroke-width: 0.05; stroke-linejoin: round; }
-.ha-palm { fill: none; stroke: #2f7a3a; stroke-width: 0.07; stroke-linecap: round; opacity: 0.85; }
-.ha-isl text { font: 700 0.34px var(--sans); fill: #1f2430; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
-.ha-isl.met .ha-land { fill: #b9e4c2; stroke: #1f7a3c; }
-.ha-isl.over .ha-land { fill: #f4bcbc; stroke: var(--danger); }
-.ha-isl.over text { fill: #8a1020; }
-.ha-isl.near .ha-land { stroke-width: 0.1; stroke-dasharray: 0.14 0.1; stroke: var(--ink); }
-.ha-isl.sel .ha-land { fill: var(--mark); stroke: #1a1a1a; stroke-width: 0.1; }
-.ha-isl.hint-focus .ha-land { stroke: var(--accent); stroke-width: 0.12; }
+.ha-land { fill: var(--surface); stroke: var(--ink); stroke-width: 0.055; stroke-linejoin: round; }
+.ha-wave { fill: none; stroke: var(--ink); stroke-width: 0.05; stroke-linecap: round; }
+.ha-isl text { font: 800 0.34px var(--sans); fill: var(--ink); text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.ha-isl.met .ha-land { fill: color-mix(in srgb, var(--ok) 24%, var(--surface)); stroke: var(--ok); }
+.ha-isl.met .ha-wave { stroke: var(--ok); }
+.ha-isl.met text { fill: var(--ok); }
+.ha-isl.over .ha-land { fill: color-mix(in srgb, var(--danger) 20%, var(--surface)); stroke: var(--danger); }
+.ha-isl.over .ha-wave { stroke: var(--danger); }
+.ha-isl.over text { fill: var(--danger); }
+.ha-isl.near .ha-land { stroke-width: 0.1; stroke-dasharray: 0.14 0.1; }
+.ha-isl.sel .ha-land { fill: var(--mark); stroke-width: 0.09; }
+.ha-isl.sel text { fill: #1a1a1a; }
+.ha-isl.hint-focus .ha-land { stroke: var(--accent); stroke-width: 0.1; }
+.ha-isl.hint-focus .ha-wave { stroke: var(--accent); }
 .hint-cell { stroke: var(--accent); }
 @media (max-width: 699px) {
   .ha .tools { margin-top: auto; }
