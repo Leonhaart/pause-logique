@@ -275,10 +275,10 @@ export function randomConfig(N, islandsWanted, loopRate, rng) {
   isl.push(first);
   const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
   const vals = [];
-  for (let tries = 0; isl.length < islandsWanted && tries < 400; tries++) {
+  for (let tries = 0; isl.length < islandsWanted && tries < 4000; tries++) {
     const a = isl[rng.int(isl.length)];
     const [dr, dc] = dirs[rng.int(4)];
-    const L = 2 + rng.int(Math.max(1, N - 2));
+    const L = 3 + rng.int(Math.max(1, N - 3));
     const r0 = Math.floor(a / N);
     const c0 = a % N;
     const r1 = r0 + dr * L;
@@ -291,6 +291,15 @@ export function randomConfig(N, islandsWanted, loopRate, rng) {
       const j = (r0 + dr * k) * N + c0 + dc * k;
       if (occ[j] !== 0) ok = false;
       between.push(j);
+    }
+    if (!ok) continue;
+    // deux îles ne se touchent pas et ne sont jamais à une seule case d'écart
+    for (const [er, ec] of dirs) {
+      for (const k of [1, 2]) {
+        const rr = r1 + er * k;
+        const cc = c1 + ec * k;
+        if (rr >= 0 && rr < N && cc >= 0 && cc < N && occ[rr * N + cc] === 1) ok = false;
+      }
     }
     if (!ok) continue;
     occ[t] = 1;

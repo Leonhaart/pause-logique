@@ -5,15 +5,21 @@ import { geoOf, newState, findStep, isSolution } from './solver.js';
 import { puzzleFor } from './puzzle.js';
 import { consume, refillAll, stockInfo, onStock } from './pool.js';
 
+// Silhouette d'île (centrée, environ 0,9 de large) et petit palmier
+const LAND = 'M-0.46 0.3C-0.46 0.05-0.28-0.08 0-0.08C0.28-0.08 0.46 0.05 0.46 0.3C0.2 0.44-0.2 0.44-0.46 0.3Z';
+const PALM = 'M0.1-0.06C0.12-0.14 0.14-0.2 0.13-0.28M0.13-0.28c-0.1-0.09-0.2-0.09-0.28-0.04M0.13-0.28c0.1-0.09 0.2-0.09 0.28-0.04M0.13-0.28c-0.02-0.07 0-0.12 0.05-0.17';
+
 export default {
   mount(container, ctx) {
     const { t } = ctx;
     const [diff, sizeStr] = ctx.level.split('-');
     const N = +sizeStr || 9;
-    const saved = ctx.restore;
+    let saved = ctx.restore;
     const { pid, puz, sol } = puzzleFor(N, diff, ctx.seed, ctx.rng, saved?.pid);
     const g = geoOf(puz);
     const E = g.edges.length;
+    // sauvegarde d'une ancienne banque : on l'ignore si elle ne correspond pas à cette grille
+    if (saved && (typeof saved.snap !== 'string' || saved.snap.length !== E || [...saved.snap].some((ch, x) => +ch > g.edges[x].max))) saved = null;
     const row = (i) => Math.floor(i / N);
     const col = (i) => i % N;
 
@@ -198,7 +204,7 @@ export default {
         else if (near.has(i) && !finished) cls.push('near');
         if (hf.has(i)) cls.push('hint-focus');
         const [cx, cy] = P(isl.cell);
-        parts.push(`<g class="${cls.join(' ')}" role="img" aria-label="${t('ha.island', { n: isl.v, c: d })}"><circle cx="${cx}" cy="${cy}" r="0.42"/><text x="${cx}" y="${cy}">${isl.v}</text></g>`);
+        parts.push(`<g class="${cls.join(' ')}" role="img" aria-label="${t('ha.island', { n: isl.v, c: d })}" transform="translate(${cx} ${cy})"><path class="ha-land" d="${LAND}"/><path class="ha-palm" d="${PALM}"/><text x="0" y="0.22">${isl.v}</text></g>`);
       });
       const svg = svgEl(`<svg viewBox="0 0 ${N} ${N}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${parts.join('')}</svg>`);
       board.replaceChildren(svg);

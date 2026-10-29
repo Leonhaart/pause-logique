@@ -101,7 +101,7 @@ Les erreurs ne sont jamais punies : le réglage `errors` ne change que l'afficha
 
 - Tailles 7, 9 et 11. Le niveau s'écrit `<difficulté>-<taille>` (ex. `hard-9`).
 - Difficulté selon les techniques : facile (comptage des îles, île complète, croisements), moyen (réseau refermé trop tôt), difficile (essai logique, un ou deux niveaux d'hypothèse).
-- Générateur : réseau d'îles connexe aléatoire (arbre puis boucles), nombres déduits des ponts, gardé si la solution est unique ; rotation et symétrie varient l'aspect.
-- Banque de 100 grilles par taille (25/50/25) : `node tools/gen-bank-hashi.mjs` (3 s). Stock reconstruit en arrière-plan après chaque partie (clé `ha:pool`).
+- Générateur : réseau d'îles connexe aléatoire (arbre puis boucles), îles espacées d'au moins deux cases vides, nombres déduits des ponts, gardé si la solution est unique ; rotation et symétrie varient l'aspect.
+- Banque de 100 grilles par taille (25/50/25) : `node tools/gen-bank-hashi.mjs` (3 s). Stock reconstruit en arrière-plan après chaque partie (clé `ha2:pool`).
 - Chaîne d'une grille : N*N caractères, `.` vide, `1`-`8` île.
 - Saisie : toucher une île, puis une île voisine : 1 pont, 2 ponts, aucun. Toucher un pont fait pareil. Île verte quand son compte est bon ; ponts et îles en trop en rouge selon le réglage d'erreurs.

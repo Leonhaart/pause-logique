@@ -3,7 +3,7 @@ import { randomConfig, countSolutions, solveWithTechniques, formatPuz } from './
 export const LEVELS = ['easy', 'medium', 'hard'];
 export const SIZES = [7, 9, 11];
 // nombre d'îles essayé selon la taille
-const ISLANDS = { 7: [10, 16], 9: [16, 26], 11: [24, 38] };
+const ISLANDS = { 7: [8, 12], 9: [13, 20], 11: [20, 30] };
 
 /** Niveau d'une grille unique : 1 facile, 2 moyen, 3+ difficile, 0 non résoluble par les techniques. */
 export function rate(puz) {

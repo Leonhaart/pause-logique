@@ -4,7 +4,7 @@ import { storage } from '../../core/storage.js';
 import { newSeed } from '../../core/rng.js';
 import { BANK } from './bank.js';
 
-const KEY = 'ha:pool';
+const KEY = 'ha2:pool';
 const key = (N, level) => `${N}-${level}`;
 const read = () => {
   const s = storage.get(KEY, null);
