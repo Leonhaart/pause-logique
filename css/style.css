@@ -283,3 +283,7 @@ h1, h2, h3, p { margin: 0; }
 .level-shuffle { width: 20px; height: 20px; }
 .level-best { min-height: 0; }
 .level-best:empty { display: none; }
+.diag { border-top: 1px solid var(--rule); }
+.diag-line { font-weight: 600; font-variant-numeric: tabular-nums; }
+.diag-line.ok { color: var(--ok); }
+.diag-line.ko { color: var(--danger); }

@@ -1,5 +1,5 @@
 // Fichier généré par tools/gen-sw-assets.mjs, ne pas modifier à la main.
-self.APP_VERSION = "9e42056fb3";
+self.APP_VERSION = "8bbdcae182";
 self.APP_ASSETS = [
   "./",
   "THIRD_PARTY_NOTICES.md",
@@ -15,9 +15,11 @@ self.APP_ASSETS = [
   "icons/icon-maskable-512.png",
   "icons/icon.svg",
   "index.html",
+  "js/core/diag.js",
   "js/core/dom.js",
   "js/core/format.js",
   "js/core/i18n.js",
+  "js/core/probe-worker.js",
   "js/core/rng.js",
   "js/core/router.js",
   "js/core/saves.js",

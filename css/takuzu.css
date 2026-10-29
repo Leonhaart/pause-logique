@@ -18,12 +18,10 @@
 .tk-mark { width: 62%; height: 62%; border-radius: 50%; box-sizing: border-box; display: none; pointer-events: none; }
 .tk-cell.v1 .tk-mark { display: block; background: var(--ink); }
 .tk-cell.v0 .tk-mark { display: block; border: 3px solid var(--ink); }
-.tk-cell:not(.given).v1 .tk-mark { background: var(--accent); }
-.tk-cell:not(.given).v0 .tk-mark { border-color: var(--accent); }
 .tk-cell.bad .tk-mark { background: var(--danger); border-color: var(--danger); }
 .tk-cell.bad.v0 .tk-mark { background: transparent; }
 .tk-cell.bad { box-shadow: inset 0 0 0 3px var(--danger); z-index: 1; }
-.tk-cell.sel { outline: 3px solid var(--accent); outline-offset: -3px; z-index: 1; }
+.tk-cell.sel { background: var(--mark); z-index: 1; }
 .tk-cell.hint-unit { box-shadow: inset 0 0 0 100px color-mix(in srgb, var(--accent) 22%, transparent); }
-.tk-cell.hint-focus { box-shadow: inset 0 0 0 100px color-mix(in srgb, var(--mark) 55%, transparent); }
+.tk-cell.hint-focus { box-shadow: inset 0 0 0 100px color-mix(in srgb, var(--accent) 38%, transparent); }
 .tk-cell.hint-cell { box-shadow: inset 0 0 0 4px var(--accent), inset 0 0 0 100px color-mix(in srgb, var(--accent) 28%, transparent); z-index: 1; }

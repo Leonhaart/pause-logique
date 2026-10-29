@@ -7,6 +7,9 @@ import { GAMES, levelKeys, levelLabel } from '../games/registry.js';
 import { openSheet, segmented, switchRow } from './components.js';
 
 import { infoTabs } from './info.js';
+import { probeWorker, rebuiltCount } from '../core/diag.js';
+
+let probe = null; // résultat du test de worker, gardé pour la session
 
 export function openSettings() {
   let unsub;
@@ -40,6 +43,12 @@ export function openSettings() {
             ], s.errors, (v) => setSetting('errors', v)),
             h('span', { class: 'row-hint' }, t('settings.errorsHint'))),
           switchRow(t('settings.hints'), null, s.hints, (v) => setSetting('hints', v)),
+          h('div', { class: 'field diag' },
+            h('span', { class: 'field-label' }, t('settings.stock')),
+            h('span', { class: `diag-line ${probe ? (probe.ok ? 'ok' : 'ko') : ''}`.trim() },
+              !probe ? t('settings.worker.testing') : probe.ok ? t('settings.worker.ok', { ms: probe.ms }) : t('settings.worker.no', { why: probe.reason })),
+            h('span', { class: 'row-hint' }, t('settings.stock.count', { n: rebuiltCount() })),
+            h('span', { class: 'row-hint' }, t('settings.stock.hint'))),
           confirming
             ? h('div', { class: 'confirm' }, h('span', {}, t('settings.resetConfirm')),
                 h('div', { class: 'confirm-actions' },
@@ -49,6 +58,7 @@ export function openSettings() {
         );
       };
       render();
+      probeWorker().then((r) => { probe = r; if (body.isConnected) render(); });
       unsub = subscribe(render);
     },
   });
