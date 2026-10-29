@@ -1,0 +1,44 @@
+/* Futoshiki */
+.fu { flex: 1; display: flex; flex-direction: column; gap: 10px; align-items: center; padding-top: 4px; }
+.fu > * { width: 100%; max-width: 520px; }
+.fu-board-wrap { width: min(100%, 520px, max(260px, calc(100dvh - 330px))); max-width: none; align-self: center; }
+.fu-board {
+  --gap: 0.42fr;
+  container-type: inline-size;
+  display: grid; aspect-ratio: 1; width: 100%;
+  touch-action: manipulation; user-select: none; -webkit-user-select: none;
+}
+.fu-cell {
+  position: relative; display: grid; place-items: center; min-width: 0; min-height: 0;
+  background: var(--surface); border: 2px solid var(--ink); border-radius: 6px;
+  font: 500 9cqw/1 var(--sans); font-variant-numeric: tabular-nums; cursor: pointer;
+}
+.fu-cell.given { font-weight: 700; background: color-mix(in srgb, var(--ink) 9%, var(--surface)); }
+.fu-cell.user { color: var(--accent); font-weight: 600; }
+.fu-cell.peer { background: color-mix(in srgb, var(--ink) 6%, var(--surface)); }
+.fu-cell.given.peer { background: color-mix(in srgb, var(--ink) 13%, var(--surface)); }
+.fu-cell.same { background: color-mix(in srgb, var(--accent) 22%, var(--surface)); }
+.fu-cell.sel { background: color-mix(in srgb, var(--mark) 55%, var(--surface)); box-shadow: 0 0 0 3px var(--ink); z-index: 2; }
+.fu-cell.bad { color: var(--danger); background: color-mix(in srgb, var(--danger) 16%, var(--surface)); }
+.fu-cell.hint-unit { background: color-mix(in srgb, var(--accent) 16%, var(--surface)); }
+.fu-cell.hint-cell { box-shadow: 0 0 0 3px var(--accent); z-index: 1; }
+.fu-notes { position: absolute; inset: 3px; display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: 1fr; font: 600 3.6cqw/1 var(--sans); color: var(--ink-2); pointer-events: none; }
+.fu-notes span { display: grid; place-items: center; }
+.fu-cell.has-val .fu-notes { display: none; }
+.fu-sign { display: grid; place-items: center; font: 800 8cqw/1 var(--sans); color: var(--ink); pointer-events: none; }
+.fu-sign.v span { display: block; transform: rotate(90deg); }
+.fu-sign.bad { color: var(--danger); }
+.fu-pad { display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 6px; }
+.fu-key {
+  min-height: 56px; padding: 0; display: flex; align-items: center; justify-content: center;
+  background: var(--surface); border: 2px solid var(--ink); border-radius: 6px;
+  font: 600 24px/1 var(--sans); font-variant-numeric: tabular-nums; touch-action: manipulation;
+}
+.fu-key:active { background: var(--ink); color: var(--bg); }
+.fu-key:disabled { opacity: 0.3; }
+.fu-key.done { opacity: 0.35; }
+.fu-notes-mode .fu-key { border-style: dashed; }
+@media (max-width: 699px) {
+  .fu .tools { margin-top: auto; }
+  .fu { padding-bottom: 4px; }
+}

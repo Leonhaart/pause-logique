@@ -1,8 +1,9 @@
 // Fichier généré par tools/gen-sw-assets.mjs, ne pas modifier à la main.
-self.APP_VERSION = "eac405b6b4";
+self.APP_VERSION = "3d0a09a419";
 self.APP_ASSETS = [
   "./",
   "THIRD_PARTY_NOTICES.md",
+  "css/futoshiki.css",
   "css/games.css",
   "css/nonogram.css",
   "css/starbattle.css",
@@ -27,6 +28,14 @@ self.APP_ASSETS = [
   "js/core/stats.js",
   "js/core/storage.js",
   "js/core/timer.js",
+  "js/games/futoshiki/bank.js",
+  "js/games/futoshiki/generator.js",
+  "js/games/futoshiki/index.js",
+  "js/games/futoshiki/pool.js",
+  "js/games/futoshiki/puzzle.js",
+  "js/games/futoshiki/solver.js",
+  "js/games/futoshiki/transform.js",
+  "js/games/futoshiki/worker.js",
   "js/games/nonogram/bank.js",
   "js/games/nonogram/generator.js",
   "js/games/nonogram/images.js",

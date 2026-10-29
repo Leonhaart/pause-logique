@@ -72,3 +72,11 @@ Les erreurs ne sont jamais punies : le réglage `errors` ne change que l'afficha
 - Difficulté selon les techniques : facile (paires, trous, quota), moyen (toutes les complétions d'une ligne, lignes uniques), difficile (essai logique).
 - Banque de 100 grilles par taille (25 faciles, 50 moyennes, 25 difficiles) : `node tools/gen-bank-takuzu.mjs`. Stock reconstruit en arrière-plan après chaque partie.
 - Appui : vide, ● (1), ○ (0), vide. Glisser pour peindre plusieurs cases.
+
+## Futoshiki
+
+- Tailles 4, 5 et 6. Le niveau s'écrit `<difficulté>-<taille>` (ex. `hard-5`).
+- Difficulté selon les techniques : facile (chiffre unique, bornes imposées par les signes), moyen (paires et triplets), difficile (essai logique).
+- Au moins un chiffre est toujours donné. Les grilles peuvent tourner et être symétriques ; l'inversion des chiffres (d devient N+1-d, signes inversés) varie aussi l'aspect.
+- Banque de 100 grilles par taille (25/50/25) : `node tools/gen-bank-futoshiki.mjs`. Stock reconstruit en arrière-plan après chaque partie.
+- Notes, notes automatiques (lignes, colonnes et signes), indice en deux temps, vérification.
