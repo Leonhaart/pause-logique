@@ -115,3 +115,12 @@ Les erreurs ne sont jamais punies : le réglage `errors` ne change que l'afficha
 - Banque de 100 grilles par taille (25/50/25) : `node tools/gen-bank-kakuro.mjs` (environ 5 min, surtout le 10×10 difficile). Stock reconstruit en arrière-plan après chaque partie (clé `kk:pool`) ; sur téléphone, un 10×10 difficile peut mettre plusieurs secondes à se reconstruire.
 - Chaîne d'une grille : N*N cases séparées par des virgules, `.` case blanche, `1`-`9` chiffre donné, `#` case noire sans somme, `d/r` somme vers le bas / vers la droite (l'une peut être vide). La transposition varie l'aspect.
 - Appui sur une case blanche puis chiffre au pavé ; mode notes et notes automatiques ; somme en vert quand la suite est juste, en rouge si elle est dépassée (réglage « direct »). Indice en deux temps : suite surlignée, puis « Révéler » et « Placer ».
+
+## Slitherlink
+
+- Dixième jeu, ajouté en extension. Tailles 5, 7 et 10 (cases). Le niveau s'écrit `<difficulté>-<taille>` (ex. `hard-7`). La dixième tuile de l'accueil occupe seule toute la largeur de sa ligne.
+- Difficulté selon les techniques : facile (règles directes : chiffre complet ou à compléter, sommet à 0 ou 2 traits, fermeture trop précoce), moyen (combinaisons autour d'un chiffre avec contrôle des sommets), difficile (essai logique, un niveau d'hypothèse).
+- Générateur : boucle aléatoire (région connexe sans trou ni pincement), tous les chiffres, puis retrait de chiffres au hasard tant que la grille reste résolvable au niveau visé, donc à solution unique. Les 8 symétries du carré varient l'aspect.
+- Banque de 100 grilles par taille (25/50/25) : `node tools/gen-bank-slitherlink.mjs` (environ 40 s). Stock reconstruit en arrière-plan après chaque partie (clé `sl:pool`).
+- Chaîne d'une grille : N*N caractères, `.` pas de chiffre, `0`-`3` chiffre.
+- Appui sur un côté : trait, puis croix (côté exclu), puis vide. Glisser pour poser plusieurs traits ou croix. Chiffre grisé quand son compte est bon, en rouge s'il est dépassé (réglage « direct »). Boucle terminée : intérieur coloré.

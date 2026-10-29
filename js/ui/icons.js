@@ -1,4 +1,4 @@
-// Icônes des 9 jeux (viewBox 64) et icônes d'interface (viewBox 24). Traits en currentColor,
+// Icônes des 10 jeux (viewBox 64) et icônes d'interface (viewBox 24). Traits en currentColor,
 // éléments d'accent en var(--accent).
 const G = (inner) =>
   `<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${inner}</svg>`;
@@ -77,6 +77,11 @@ export const GAME_ICONS = {
   akari: G(
     `<circle cx="32" cy="26" r="11" stroke="var(--accent)" fill="var(--accent)" fill-opacity=".18"/><path d="M27 41h10M28.5 46h7M30.5 51h3" stroke="var(--accent)"/>` +
       `<path d="M32 6v6M13 13l4 4M51 13l-4 4M7 28h6M51 28h6"/>`,
+  ),
+  slitherlink: G(
+    `<path d="M14 14h18v18h18v18H14z" stroke="var(--accent)" stroke-width="3.5"/>` +
+      [0, 1, 2].map((r) => [0, 1, 2].map((c) => `<circle cx="${14 + c * 18}" cy="${14 + r * 18}" r="2.4" fill="currentColor" stroke="none"/>`).join('')).join('') +
+      txt(23, 27, '3', 11) + txt(23, 45, '2', 11),
   ),
   tents: G(
     `<path d="M5 54h54"/><path d="M8 54L24 24l16 30z" stroke="var(--accent)" fill="var(--accent)" fill-opacity=".18"/><path d="M24 40l-5 14M24 40l5 14" stroke="var(--accent)"/>` +

@@ -113,9 +113,9 @@ test('i18n : résolution de langue et paramètres', () => {
   setLanguage('fr');
 });
 
-test('registre : 9 jeux, icône et textes pour chacun, niveaux', () => {
-  assert.equal(GAMES.length, 9);
-  assert.equal(new Set(GAMES.map((g) => g.id)).size, 9);
+test('registre : 10 jeux, icône et textes pour chacun, niveaux', () => {
+  assert.equal(GAMES.length, 10);
+  assert.equal(new Set(GAMES.map((g) => g.id)).size, 10);
   assert.deepEqual(LEVELS, ['easy', 'medium', 'hard']);
   for (const g of GAMES) {
     assert.ok(GAME_ICONS[g.id], `icône manquante : ${g.id}`);

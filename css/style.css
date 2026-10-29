@@ -109,6 +109,9 @@ h1, h2, h3, p { margin: 0; }
   --icon-bg: var(--surface);
 }
 .tile-icon { width: 62%; display: block; }
+/* dixième tuile seule sur sa ligne : pleine largeur, plus basse */
+.tile:last-child:nth-child(3n + 1) { grid-column: 1 / -1; aspect-ratio: 3 / 1; flex-direction: row; gap: 14px; }
+.tile:last-child:nth-child(3n + 1) .tile-icon { width: 19%; }
 .tile-icon svg, .hero-icon svg, .ghost-icon, .placeholder-icon { display: block; width: 100%; height: auto; overflow: visible; }
 .tile-name { font: 600 13px/1.2 var(--sans); letter-spacing: 0.01em; text-align: center; }
 .tile.soon .tile-icon { opacity: 0.62; }

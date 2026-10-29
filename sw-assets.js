@@ -1,5 +1,5 @@
 // Fichier généré par tools/gen-sw-assets.mjs, ne pas modifier à la main.
-self.APP_VERSION = "995d4a086b";
+self.APP_VERSION = "d431375234";
 self.APP_ASSETS = [
   "./",
   "THIRD_PARTY_NOTICES.md",
@@ -9,6 +9,7 @@ self.APP_ASSETS = [
   "css/hashi.css",
   "css/kakuro.css",
   "css/nonogram.css",
+  "css/slitherlink.css",
   "css/starbattle.css",
   "css/style.css",
   "css/sudoku.css",
@@ -74,6 +75,14 @@ self.APP_ASSETS = [
   "js/games/nonogram/worker.js",
   "js/games/placeholder.js",
   "js/games/registry.js",
+  "js/games/slitherlink/bank.js",
+  "js/games/slitherlink/generator.js",
+  "js/games/slitherlink/index.js",
+  "js/games/slitherlink/pool.js",
+  "js/games/slitherlink/puzzle.js",
+  "js/games/slitherlink/solver.js",
+  "js/games/slitherlink/transform.js",
+  "js/games/slitherlink/worker.js",
   "js/games/starbattle/bank.js",
   "js/games/starbattle/generator.js",
   "js/games/starbattle/index.js",

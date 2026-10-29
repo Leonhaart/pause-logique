@@ -1,6 +1,6 @@
 import { t } from '../core/i18n.js';
 
-// Les 9 jeux de la page d'accueil, dans l'ordre d'affichage (grille 3×3).
+// Les 10 jeux de la page d'accueil, dans l'ordre d'affichage (grille de 3 colonnes).
 // ready=false -> écran provisoire. Passer à true quand le module du jeu est livré.
 export const LEVELS = ['easy', 'medium', 'hard'];
 
@@ -14,6 +14,7 @@ export const GAMES = [
   { id: 'kakuro', phase: 3, ready: true, sizes: [6, 8, 10] },
   { id: 'akari', phase: 3, ready: true, sizes: [7, 9, 12] },
   { id: 'tents', phase: 2, ready: true, sizes: [6, 8, 10] },
+  { id: 'slitherlink', phase: 4, ready: true, sizes: [5, 7, 10] },
 ];
 
 // Jeux avec choix de taille : le niveau est alors « difficulté-taille » (ex. hard-12).

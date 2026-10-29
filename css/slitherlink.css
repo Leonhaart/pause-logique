@@ -1,0 +1,29 @@
+/* Slitherlink */
+.sl { flex: 1; display: flex; flex-direction: column; gap: 10px; align-items: center; padding-top: 4px; }
+.sl > * { width: 100%; max-width: 560px; }
+.sl-board-wrap { width: min(100%, 560px, max(260px, calc(100dvh - 270px))); max-width: none; align-self: center; }
+.sl-board { touch-action: none; user-select: none; -webkit-user-select: none; cursor: pointer; }
+.sl-svg { display: block; width: 100%; height: auto; overflow: visible; }
+.sl-fill { fill: transparent; }
+.sl-fill.inside { fill: color-mix(in srgb, var(--accent) 22%, transparent); }
+.sl-fill.hint { fill: color-mix(in srgb, var(--accent) 28%, transparent); }
+.sl-guide { stroke: color-mix(in srgb, var(--ink) 22%, transparent); stroke-width: 0.03; stroke-dasharray: 0.04 0.1; stroke-linecap: round; }
+.sl-dot { fill: var(--ink); }
+.sl-dot.bad { fill: var(--danger); }
+.sl-halo { fill: var(--accent); opacity: 0; }
+.sl-halo.on { opacity: 0.4; }
+.sl-ghost { stroke: var(--accent); stroke-width: 0.2; stroke-linecap: round; opacity: 0; }
+.sl-ghost.on { opacity: 0.55; }
+.sl-edge { stroke: var(--ink); stroke-width: 0.11; stroke-linecap: round; opacity: 0; }
+.sl-edge.on { opacity: 1; }
+.sl-edge.on.bad { stroke: var(--danger); }
+.sl-edge.on.done { stroke: var(--accent); }
+.sl-x { fill: none; stroke: color-mix(in srgb, var(--ink) 55%, transparent); stroke-width: 0.055; stroke-linecap: round; opacity: 0; }
+.sl-x.on { opacity: 1; }
+.sl-x.on.bad { stroke: var(--danger); stroke-width: 0.08; }
+.sl-clue { font: 700 0.56px var(--sans); text-anchor: middle; fill: var(--ink); pointer-events: none; font-variant-numeric: tabular-nums; }
+.sl-clue.met { fill: color-mix(in srgb, var(--ink) 38%, transparent); }
+.sl-clue.over { fill: var(--danger); }
+@media (max-width: 699px) {
+  .sl .tools { margin-top: auto; }
+}
