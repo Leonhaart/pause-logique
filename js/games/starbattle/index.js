@@ -6,7 +6,7 @@ import { History, toolButton } from '../../ui/kit.js';
 import { iconEl } from '../../ui/components.js';
 import { geo, newState, place, findStep, unitsOf } from './solver.js';
 import { puzzleFor } from './puzzle.js';
-import { consume, refillAll } from './pool.js';
+import { consume, refillAll, stockInfo, onStock } from './pool.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const STAR_PATH = 'M12 2.800l2.900 6 6.600.9-4.800 4.600 1.200 6.500L12 17.600l-5.900 3.200 1.200-6.500L2.500 9.700l6.600-.9z';
@@ -194,7 +194,7 @@ export default {
         penOn = false;
         render();
         consume(N, diff, pid);
-        ctx.complete();
+        ctx.complete({ stock: { get: () => stockInfo(N, diff), subscribe: onStock } });
       } else {
         message = { text: t('sb.fullButWrong') };
         render();

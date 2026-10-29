@@ -4,7 +4,7 @@ import { h } from '../../core/dom.js';
 import { History, toolButton } from '../../ui/kit.js';
 import { geo, findStep } from './solver.js';
 import { puzzleFor } from './puzzle.js';
-import { consume, refillAll } from './pool.js';
+import { consume, refillAll, stockInfo, onStock } from './pool.js';
 
 export default {
   mount(container, ctx) {
@@ -79,7 +79,7 @@ export default {
       finished = true;
       render();
       consume(N, diff, pid);
-      ctx.complete();
+      ctx.complete({ stock: { get: () => stockInfo(N, diff), subscribe: onStock } });
     }
 
     // --- indices ----------------------------------------------------------

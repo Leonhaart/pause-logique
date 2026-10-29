@@ -4,7 +4,7 @@ import { storage } from '../../core/storage.js';
 import { History, toolButton } from '../../ui/kit.js';
 import { findStep, runsOf } from './solver.js';
 import { puzzleFor } from './puzzle.js';
-import { consume, refillAll } from './pool.js';
+import { consume, refillAll, stockInfo, onStock } from './pool.js';
 
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const TECH_TEXT = { basic: 'ng.hint.basic', bounds: 'ng.hint.bounds', line: 'ng.hint.line', trial: 'ng.hint.trial' };
@@ -144,7 +144,7 @@ export default {
       message = name ? { text: t('ng.picture', { name }) } : null;
       render();
       consume(N, diff, pid);
-      ctx.complete({ note: name ? t('ng.picture', { name }) : null });
+      ctx.complete({ stock: { get: () => stockInfo(N, diff), subscribe: onStock }, note: name ? t('ng.picture', { name }) : null });
     }
 
     // --- indices ------------------------------------------------------------------

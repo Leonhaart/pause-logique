@@ -11,6 +11,19 @@ const read = () => {
 };
 const write = (s) => storage.set(KEY, s);
 const running = new Set();
+const state = {}; // clé -> 'idle' | 'failed' | 'unsupported'
+const listeners = new Set();
+const notify = () => listeners.forEach((f) => f());
+const setState = (k, v) => { state[k] = v; notify(); };
+
+/** Abonnement aux changements d'état du stock ; renvoie la fonction de désabonnement. */
+export const onStock = (fn) => { listeners.add(fn); return () => listeners.delete(fn); };
+
+/** { have, target, status } : status = building | idle | failed | unsupported. */
+export function stockInfo(N, level) {
+  const k = key(N, level);
+  return { have: availableIds(N, level).length, target: bankSize(N, level), status: running.has(k) ? 'building' : state[k] || 'idle' };
+}
 
 export const bankSize = (N, level) => BANK[N][level].length;
 
@@ -64,29 +77,32 @@ function usedNames(N) {
 
 export function refill(N, level) {
   const k = key(N, level);
-  if (running.has(k) || typeof Worker === 'undefined') return;
-  if (availableIds(N, level).length >= bankSize(N, level)) return;
+  if (running.has(k)) return;
+  if (typeof Worker === 'undefined') return setState(k, 'unsupported');
+  if (availableIds(N, level).length >= bankSize(N, level)) return setState(k, 'idle');
   let worker;
   try {
     worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' });
   } catch {
-    return;
+    return setState(k, 'unsupported');
   }
   running.add(k);
-  const done = () => {
+  notify();
+  const done = (failed) => {
     running.delete(k);
     worker.terminate();
+    if (failed) setState(k, 'failed');
   };
   worker.onmessage = (e) => {
     const g = e.data;
-    done();
+    done(!!g.failed);
     if (g.failed) return;
     const s = read();
     (s.extra[k] ??= []).push({ pid: 'g' + newSeed(), bits: g.bits, name: g.name ?? '' });
     write(s);
     refill(N, level);
   };
-  worker.onerror = done;
+  worker.onerror = () => done(true);
   worker.postMessage({ N, level, seed: 'refill:' + newSeed(), exclude: usedNames(N) });
 }
 

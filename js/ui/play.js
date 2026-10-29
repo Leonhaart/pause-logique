@@ -92,6 +92,18 @@ export function mountPlay(root, route, nav) {
     };
     const again = () => go(hashes.play(gameId, level, newSeed()));
     const st = levelStats(gameId, level);
+    let unsubStock = null;
+    let stockEl = null;
+    if (info.stock) {
+      stockEl = h('p', { class: 'done-stock' });
+      const upd = () => {
+        const st2 = info.stock.get();
+        stockEl.className = `done-stock ${st2.status}`;
+        stockEl.textContent = t(`done.stock.${st2.status}`, { have: st2.have, target: st2.target });
+      };
+      upd();
+      unsubStock = info.stock.subscribe(upd);
+    }
     const view = () => {
       doneSheet?.close();
       screen.append(h('div', { class: 'done-bar' },
@@ -102,6 +114,7 @@ export function mountPlay(root, route, nav) {
     doneSheet = openSheet({
       title: t('done.title'),
       dismissible: false,
+      onClose: () => unsubStock?.(),
       build(body) {
         body.append(
           h('div', { class: 'done' },
@@ -113,6 +126,7 @@ export function mountPlay(root, route, nav) {
               st.best != null ? h('li', {}, t('done.best', { time: formatTime(st.best) })) : null,
               st.timed ? h('li', {}, t('done.avg', { time: formatTime(st.sum / st.timed) })) : null,
               h('li', {}, t('done.count', { n: st.done }))),
+            stockEl,
             h('p', { class: 'row-hint' }, t('done.seed', { seed })),
             h('div', { class: 'done-actions' },
               h('button', { class: 'btn btn-primary', onClick: again }, t('done.again')),

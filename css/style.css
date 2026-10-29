@@ -295,3 +295,8 @@ h1, h2, h3, p { margin: 0; }
 .done-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 0 max(8px, env(safe-area-inset-bottom)); border-top: 2px solid var(--ink); }
 .done-bar-title { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--ok); margin-right: auto; }
 .done-bar .btn { min-height: 44px; padding: 0 14px; }
+.done-stock { font-size: 14px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.done-stock.building::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 8px; border: 2px solid var(--accent); border-right-color: transparent; border-radius: 50%; animation: spin 0.9s linear infinite; vertical-align: -1px; }
+.done-stock.idle { color: var(--ok); font-weight: 600; }
+.done-stock.failed, .done-stock.unsupported { color: var(--danger); }
+@keyframes spin { to { transform: rotate(360deg); } }
