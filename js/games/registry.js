@@ -10,7 +10,7 @@ export const GAMES = [
   { id: 'nonogram', phase: 1, ready: true, sizes: [5, 10, 15] },
   { id: 'futoshiki', phase: 2, ready: false },
   { id: 'hashi', phase: 3, ready: false },
-  { id: 'takuzu', phase: 2, ready: false },
+  { id: 'takuzu', phase: 2, ready: true, sizes: [6, 8, 10] },
   { id: 'kakuro', phase: 3, ready: false },
   { id: 'akari', phase: 3, ready: false },
   { id: 'tents', phase: 2, ready: false },

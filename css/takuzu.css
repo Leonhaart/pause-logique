@@ -1,0 +1,29 @@
+/* Takuzu */
+.tk { flex: 1; display: flex; flex-direction: column; gap: 10px; align-items: center; padding-top: 4px; }
+.tk > * { width: 100%; max-width: 560px; }
+.tk-board-wrap {
+  width: min(100%, 560px, max(260px, calc(100dvh - 290px)));
+  max-width: none; align-self: center;
+}
+.tk-board {
+  display: grid; grid-template-columns: repeat(var(--n), 1fr); grid-template-rows: repeat(var(--n), 1fr);
+  aspect-ratio: 1; border: 3px solid var(--ink); background: var(--surface);
+  touch-action: none; user-select: none; -webkit-user-select: none;
+}
+.tk-cell {
+  position: relative; display: grid; place-items: center; min-width: 0; min-height: 0;
+  border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent); cursor: pointer;
+}
+.tk-cell.given { background: color-mix(in srgb, var(--ink) 9%, var(--surface)); cursor: default; }
+.tk-mark { width: 62%; height: 62%; border-radius: 50%; box-sizing: border-box; display: none; pointer-events: none; }
+.tk-cell.v1 .tk-mark { display: block; background: var(--ink); }
+.tk-cell.v0 .tk-mark { display: block; border: 3px solid var(--ink); }
+.tk-cell:not(.given).v1 .tk-mark { background: var(--accent); }
+.tk-cell:not(.given).v0 .tk-mark { border-color: var(--accent); }
+.tk-cell.bad .tk-mark { background: var(--danger); border-color: var(--danger); }
+.tk-cell.bad.v0 .tk-mark { background: transparent; }
+.tk-cell.bad { box-shadow: inset 0 0 0 3px var(--danger); z-index: 1; }
+.tk-cell.sel { outline: 3px solid var(--accent); outline-offset: -3px; z-index: 1; }
+.tk-cell.hint-unit { box-shadow: inset 0 0 0 100px color-mix(in srgb, var(--accent) 22%, transparent); }
+.tk-cell.hint-focus { box-shadow: inset 0 0 0 100px color-mix(in srgb, var(--mark) 55%, transparent); }
+.tk-cell.hint-cell { box-shadow: inset 0 0 0 4px var(--accent), inset 0 0 0 100px color-mix(in srgb, var(--accent) 28%, transparent); z-index: 1; }
