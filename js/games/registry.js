@@ -46,8 +46,25 @@ export const isLevel = (l) => LEVELS.includes(parseLevel(l).diff);
  * ctx : { gameId, level, seed, rng, restore, settings(), onSettings(fn)->unsub,
  *         save(state), complete(), isPaused(), t }
  */
+/** Charge la feuille de style d'un jeu si la page ne l'a pas déjà (page en cache plus ancienne que le jeu). */
+function ensureCss(id) {
+  const href = new URL(`../../css/${id}.css`, import.meta.url).href;
+  if ([...document.styleSheets].some((s) => s.href === href) || document.querySelector(`link[href$="css/${id}.css"]`)) return Promise.resolve();
+  return new Promise((resolve) => {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    link.onload = link.onerror = () => resolve();
+    document.head.append(link);
+    setTimeout(resolve, 3000);
+  });
+}
+
 export async function importGame(id) {
   const game = getGame(id);
-  if (game?.ready) return (await import(`./${id}/index.js`)).default;
+  if (game?.ready) {
+    const [mod] = await Promise.all([import(`./${id}/index.js`), ensureCss(id)]);
+    return mod.default;
+  }
   return (await import('./placeholder.js')).default;
 }
