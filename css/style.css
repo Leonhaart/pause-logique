@@ -271,3 +271,15 @@ h1, h2, h3, p { margin: 0; }
 .seg-btn[role="tab"][aria-selected="true"] { background: var(--ink); color: var(--bg); font-weight: 700; }
 .levels-body, .hero .info { max-width: 520px; }
 .hero .info { margin-top: 8px; text-align: left; }
+
+/* Niveaux : 4 colonnes côte à côte, même largeur que l'encadré */
+.levels-body, .screen.levels > .info { width: 100%; max-width: 520px; margin-inline: auto; }
+.level-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.level-btn { grid-template-columns: none; grid-auto-flow: row; justify-items: center; align-content: center; gap: 8px; min-height: 104px; padding: 10px 4px; text-align: center; }
+.level-name { font-size: 16px; }
+.level-best { font-size: 12px; line-height: 1.2; min-height: 2.4em; }
+.level-shuffle { margin: 0; width: 28px; height: 28px; }
+.level-btn { min-height: 92px; align-content: start; padding-top: 16px; }
+.level-shuffle { width: 20px; height: 20px; }
+.level-best { min-height: 0; }
+.level-best:empty { display: none; }
