@@ -6,8 +6,7 @@ import { puzzleFor } from './puzzle.js';
 import { consume, refillAll, stockInfo, onStock } from './pool.js';
 
 // Pictogramme d'île : montagne, ligne de terre et deux vagues (centré sur la case)
-const LAND = 'M-0.46 0.14L-0.27-0.14L-0.18-0.06L-0.02-0.46L0.08-0.28L0.16-0.35L0.46 0.14Z';
-const WAVES = 'M-0.46 0.28q0.115-0.09 0.23 0t0.23 0t0.23 0t0.23 0M-0.46 0.4q0.115-0.09 0.23 0t0.23 0t0.23 0t0.23 0';
+const LAND = 'M-0.46 0.3L-0.27-0.08L-0.18 0L-0.02-0.46L0.08-0.26L0.16-0.34L0.46 0.3Z';
 
 export default {
   mount(container, ctx) {
@@ -204,7 +203,7 @@ export default {
         else if (near.has(i) && !finished) cls.push('near');
         if (hf.has(i)) cls.push('hint-focus');
         const [cx, cy] = P(isl.cell);
-        parts.push(`<g class="${cls.join(' ')}" role="img" aria-label="${t('ha.island', { n: isl.v, c: d })}" transform="translate(${cx} ${cy})"><path class="ha-land" d="${LAND}"/><path class="ha-wave" d="${WAVES}"/><text x="0" y="-0.01">${isl.v}</text></g>`);
+        parts.push(`<g class="${cls.join(' ')}" role="img" aria-label="${t('ha.island', { n: isl.v, c: d })}" transform="translate(${cx} ${cy})"><path class="ha-land" d="${LAND}"/><text x="0" y="0.2">${isl.v}</text></g>`);
       });
       const svg = svgEl(`<svg viewBox="0 0 ${N} ${N}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${parts.join('')}</svg>`);
       board.replaceChildren(svg);

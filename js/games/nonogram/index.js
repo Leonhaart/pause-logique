@@ -16,7 +16,7 @@ export default {
     const N = +sizeStr || 10;
     const NN = N * N;
     const saved = ctx.restore;
-    const { pid, name, grid, rows, cols } = puzzleFor(N, diff, ctx.seed, ctx.rng, saved?.pid);
+    const { pid, name, colors, grid, rows, cols } = puzzleFor(N, diff, ctx.seed, ctx.rng, saved?.pid);
     const sol = grid;
 
     // états : 0 inconnue, 1 noire, 2 croix
@@ -31,6 +31,8 @@ export default {
     let hint = null; // { step, revealed }
     let message = null;
     let finished = false;
+    // une fois l'image terminée, les cases prennent les couleurs du dessin (une couleur par image si elle n'en a pas)
+    const fallback = ['#e4572e', '#2e86ab', '#3f9d5a', '#8e5bd1', '#e0a21b', '#d6457f'][ctx.seed % 6 || 0];
     let focus = -1;
 
     // --- taille des cases ---------------------------------------------------
@@ -264,6 +266,7 @@ export default {
         if (s && hint && !hint.revealed && ((s.isRow === true && r === s.k) || (s.isRow === false && c === s.k))) cls.push('hint-line');
         if (hintCells.has(i) && s && (hint.revealed || s.tech === 'trial')) cls.push('hint-cell');
         el.className = cls.join(' ');
+        if (finished && st[i] === 1) el.style.setProperty('--c', (colors && colors[i]) || fallback);
       }
       for (let k = 0; k < N; k++) {
         rowClueEls[k].classList.toggle('done', sameRuns(runsOf(lineBits(true, k), N), rows[k]));

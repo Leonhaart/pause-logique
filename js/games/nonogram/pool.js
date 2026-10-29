@@ -27,11 +27,11 @@ export function stockInfo(N, level) {
 
 export const bankSize = (N, level) => BANK[N][level].length;
 
-/** Grille de la banque ou fabriquée localement d'après son identifiant (b12, g…) : { pid, bits, name }. */
+/** Grille de la banque ou fabriquée localement d'après son identifiant (b12, g…) : { pid, bits, name, color }. */
 export function byId(N, level, pid) {
   if (pid?.startsWith('b')) {
     const e = BANK[N][level][+pid.slice(1)];
-    return e ? { pid, bits: e[0], name: e[1] ?? '' } : null;
+    return e ? { pid, bits: e[0], name: e[1] ?? '', color: e[2] ?? '' } : null;
   }
   const e = read().extra[key(N, level)]?.find((x) => x.pid === pid);
   return e ? { ...e } : null;
@@ -98,7 +98,7 @@ export function refill(N, level) {
     done(!!g.failed);
     if (g.failed) return;
     const s = read();
-    (s.extra[k] ??= []).push({ pid: 'g' + newSeed(), bits: g.bits, name: g.name ?? '' });
+    (s.extra[k] ??= []).push({ pid: 'g' + newSeed(), bits: g.bits, name: g.name ?? '', color: g.color ?? '' });
     write(s);
     refill(N, level);
   };

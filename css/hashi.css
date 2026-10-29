@@ -9,20 +9,16 @@
 .ha-bridge.bad { stroke: var(--danger); }
 .ha-glow { stroke: var(--accent); stroke-opacity: 0.35; stroke-width: 0.34; stroke-linecap: round; }
 .ha-land { fill: var(--surface); stroke: var(--ink); stroke-width: 0.055; stroke-linejoin: round; }
-.ha-wave { fill: none; stroke: var(--ink); stroke-width: 0.05; stroke-linecap: round; }
-.ha-isl text { font: 800 0.34px var(--sans); fill: var(--ink); text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.ha-isl text { font: 800 0.36px var(--sans); fill: var(--ink); text-anchor: middle; pointer-events: none; }
 .ha-isl.met .ha-land { fill: color-mix(in srgb, var(--ok) 24%, var(--surface)); stroke: var(--ok); }
-.ha-isl.met .ha-wave { stroke: var(--ok); }
-.ha-isl.met text { fill: var(--ok); }
+.ha-isl.met .ha-isl.met text { fill: var(--ok); }
 .ha-isl.over .ha-land { fill: color-mix(in srgb, var(--danger) 20%, var(--surface)); stroke: var(--danger); }
-.ha-isl.over .ha-wave { stroke: var(--danger); }
-.ha-isl.over text { fill: var(--danger); }
+.ha-isl.over .ha-isl.over text { fill: var(--danger); }
 .ha-isl.near .ha-land { stroke-width: 0.1; stroke-dasharray: 0.14 0.1; }
 .ha-isl.sel .ha-land { fill: var(--mark); stroke-width: 0.09; }
 .ha-isl.sel text { fill: #1a1a1a; }
 .ha-isl.hint-focus .ha-land { stroke: var(--accent); stroke-width: 0.1; }
-.ha-isl.hint-focus .ha-wave { stroke: var(--accent); }
-.hint-cell { stroke: var(--accent); }
+.ha-isl.hint-focus .hint-cell { stroke: var(--accent); }
 @media (max-width: 699px) {
   .ha .tools { margin-top: auto; }
 }

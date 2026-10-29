@@ -40,7 +40,10 @@
 .ng-cell.g-r { border-right: 2px solid var(--ink); }
 .ng-cell.g-b { border-bottom: 2px solid var(--ink); }
 .ng-cell.guide { background: color-mix(in srgb, var(--accent) 12%, transparent); }
-.ng-cell.on { background: var(--ink); }
+.ng-cell.on::before {
+  content: ""; position: absolute; inset: 1.5px; background: var(--c, var(--ink)); border-radius: 2px;
+  transition: background-color 0.7s ease;
+}
 .ng-cell.x::after {
   content: ""; position: absolute; inset: 24%;
   background:
@@ -49,9 +52,8 @@
 }
 .ng-cell.hint-line { background: color-mix(in srgb, var(--accent) 24%, transparent); }
 .ng-cell.hint-cell { box-shadow: inset 0 0 0 3px var(--accent); background: color-mix(in srgb, var(--accent) 30%, transparent); }
-.ng-cell.on.hint-cell { background: var(--ink); }
 .ng-cell.bad { box-shadow: inset 0 0 0 3px var(--danger); }
-.ng-cell.bad.on { background: var(--danger); }
+.ng-cell.bad.on::before { background: var(--danger); }
 .ng-cell.bad.x::after {
   background:
     linear-gradient(45deg, transparent 43%, var(--danger) 43% 57%, transparent 57%),

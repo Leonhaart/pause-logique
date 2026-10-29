@@ -25,5 +25,5 @@ self.onmessage = (e) => {
     picked = null;
     g = generate(N, level, rng, { maxTries: 50000, deadlineMs: 120000 });
   }
-  self.postMessage(g ? { N, level, bits: packGrid(g.grid), name: picked ? picked[0] : '' } : { N, level, failed: true });
+  self.postMessage(g ? { N, level, bits: packGrid(g.grid), name: picked ? picked[0] : '', color: picked ? picked[2] ?? '' : '' } : { N, level, failed: true });
 };

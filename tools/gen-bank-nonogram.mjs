@@ -11,6 +11,8 @@ import { cluesOf, countSolutions, solveWithTechniques } from '../js/games/nonogr
 const root = join(fileURLToPath(import.meta.url), '..', '..');
 const COUNTS = { easy: 25, medium: 50, hard: 25 };
 const images = existsSync(join(root, 'tools', 'nonogram-images.json')) ? JSON.parse(readFileSync(join(root, 'tools', 'nonogram-images.json'), 'utf8')) : {};
+const colors = existsSync(join(root, 'tools', 'nonogram-colors.json')) ? JSON.parse(readFileSync(join(root, 'tools', 'nonogram-colors.json'), 'utf8')) : {};
+const colorOf = (N, name) => colors[N]?.[name] ?? '';
 const out = {};
 for (const N of SIZES) {
   out[N] = {};
@@ -22,7 +24,7 @@ for (const N of SIZES) {
     if (!g || !acceptable(g, N, true)) return;
     const { rows, cols } = cluesOf(g, N);
     const level = classify(N, solveWithTechniques(rows, cols, N));
-    if (level) byLevel[level].push({ bits: packGrid(g), name: img.name });
+    if (level) byLevel[level].push({ bits: packGrid(g), name: img.name, color: colorOf(N, img.name) });
   });
   console.log(`${N}x${N} images classées :`, Object.fromEntries(Object.entries(byLevel).map(([l, v]) => [l, v.length])));
   for (const [level, n] of Object.entries(COUNTS)) {
@@ -30,7 +32,7 @@ for (const N of SIZES) {
     const t0 = Date.now();
     for (const it of byLevel[level]) {
       if (list.length >= n) break;
-      if (!seen.has(it.bits)) { seen.add(it.bits); list.push([it.bits, it.name]); }
+      if (!seen.has(it.bits)) { seen.add(it.bits); list.push(it.color ? [it.bits, it.name, it.color] : [it.bits, it.name]); }
     }
     const fromImages = list.length;
     // 2. compléter avec des motifs symétriques générés
@@ -54,11 +56,11 @@ for (const N of SIZES) {
 const file = join(root, 'js', 'games', 'nonogram', 'bank.js');
 writeFileSync(
   file,
-  `// Fichier généré par tools/gen-bank-nonogram.mjs, ne pas modifier à la main.\n// BANK[taille][niveau] = [[bits hexadécimaux (ligne par ligne), nom optionnel], ...]\nexport const BANK = ${JSON.stringify(out)};\n`,
+  `// Fichier généré par tools/gen-bank-nonogram.mjs, ne pas modifier à la main.\n// BANK[taille][niveau] = [[bits hexadécimaux (ligne par ligne), nom optionnel, couleurs optionnelles], ...]\nexport const BANK = ${JSON.stringify(out)};\n`,
 );
 console.log('écrit :', file);
 // Bibliothèque d'images complète, utilisée par le générateur embarqué pour reconstruire le stock consommé.
 writeFileSync(
   join(root, 'js', 'games', 'nonogram', 'images.js'),
-  `// Fichier généré par tools/gen-bank-nonogram.mjs, ne pas modifier à la main.\n// IMAGES[taille] = [[nom, bits hexadécimaux], ...]\nexport const IMAGES = ${JSON.stringify(Object.fromEntries(Object.entries(images).map(([n, l]) => [n, l.map((x) => [x.name, x.bits])])))};\n`,
+  `// Fichier généré par tools/gen-bank-nonogram.mjs, ne pas modifier à la main.\n// IMAGES[taille] = [[nom, bits hexadécimaux, couleurs], ...]\nexport const IMAGES = ${JSON.stringify(Object.fromEntries(Object.entries(images).map(([n, l]) => [n, l.map((x) => (colorOf(n, x.name) ? [x.name, x.bits, colorOf(n, x.name)] : [x.name, x.bits]))])))};\n`,
 );
