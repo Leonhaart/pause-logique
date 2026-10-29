@@ -236,6 +236,7 @@ export default {
         c.el.setAttribute('aria-label', `${pos}, ${v ? v + (isGiven(i) ? ', ' + t('kk.given') : '') : t('kk.empty')}`);
       }
       // sommes : vert quand la suite est complète et juste, rouge si dépassée (mode « direct »)
+      const selRunIdx = sel >= 0 ? new Set(g.runOf[sel]) : new Set();
       const status = new Map();
       g.runs.forEach((run) => {
         const info = runInfo(run);
@@ -245,7 +246,7 @@ export default {
         status.set(run, s);
         const c = cells[run.clue];
         const el = run.dir === 'h' ? c.rEl : c.dEl;
-        el.className = (run.dir === 'h' ? 'kk-r ' : 'kk-d ') + s;
+        el.className = (run.dir === 'h' ? 'kk-r ' : 'kk-d ') + s + (selRunIdx.has(g.runs.indexOf(run)) ? ' on' : '');
       });
       for (let i = 0; i < NN; i++) {
         if (isWhite(i)) continue;

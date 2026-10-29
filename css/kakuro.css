@@ -1,4 +1,7 @@
 /* Kakuro */
+.kk { --kk-block: #0e1326; --kk-clue: #eef1fa; --kk-cell: var(--surface); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .kk { --kk-block: #070a13; --kk-cell: #1d2440; } }
+:root[data-theme="dark"] .kk { --kk-block: #070a13; --kk-cell: #1d2440; }
 .kk { flex: 1; display: flex; flex-direction: column; gap: 10px; align-items: center; padding-top: 4px; }
 .kk > * { width: 100%; max-width: 560px; }
 .kk-board-wrap { width: min(100%, 560px, max(260px, calc(100dvh - 330px))); max-width: none; align-self: center; }
@@ -11,28 +14,35 @@
 }
 .kk-cell {
   position: relative; display: grid; place-items: center; min-width: 0; min-height: 0; box-sizing: border-box;
-  background: var(--surface); border: 1px solid color-mix(in srgb, var(--ink) 28%, transparent); cursor: pointer;
+  background: var(--kk-cell); border: 1px solid color-mix(in srgb, var(--ink) 28%, transparent); cursor: pointer;
   font: 500 calc(56cqw / var(--n)) / 1 var(--sans); font-variant-numeric: tabular-nums;
 }
 .kk-cell.black {
-  cursor: default; border-color: var(--ink); background: var(--ink);
+  cursor: default; border-color: color-mix(in srgb, var(--kk-clue) 22%, var(--kk-block)); background: var(--kk-block);
 }
 .kk-cell.black.clue {
-  background: linear-gradient(to top right, transparent calc(50% - 0.6px), color-mix(in srgb, var(--surface) 55%, transparent) calc(50% - 0.6px), color-mix(in srgb, var(--surface) 55%, transparent) calc(50% + 0.6px), transparent calc(50% + 0.6px)), var(--ink);
+  background: linear-gradient(to top right, transparent calc(50% - 0.6px), color-mix(in srgb, var(--kk-clue) 40%, transparent) calc(50% - 0.6px), color-mix(in srgb, var(--kk-clue) 40%, transparent) calc(50% + 0.6px), transparent calc(50% + 0.6px)), var(--kk-block);
 }
-.kk-r, .kk-d { position: absolute; font: 700 calc(30cqw / var(--n)) / 1 var(--sans); color: var(--surface); pointer-events: none; }
-.kk-r { top: 8%; right: 9%; }
-.kk-d { bottom: 8%; left: 9%; }
+.kk-r, .kk-d { position: absolute; display: flex; align-items: center; gap: 0.12em; font: 700 calc(30cqw / var(--n)) / 1 var(--sans); color: var(--kk-clue); pointer-events: none; }
+.kk-r:empty, .kk-d:empty { display: none; }
+.kk-r { top: 7%; right: 7%; }
+.kk-d { bottom: 7%; left: 9%; flex-direction: column; gap: 0.15em; }
+/* flèche : indique le sens de la suite (droite ou bas) */
+.kk-r::after, .kk-d::after { content: ""; display: block; width: 0; height: 0; border: 0.26em solid transparent; }
+.kk-r::after { border-left: 0.4em solid currentColor; border-right: 0; }
+.kk-d::after { border-top: 0.4em solid currentColor; border-bottom: 0; }
+.kk-r.on, .kk-d.on { color: var(--mark); }
 .kk-r.met, .kk-d.met { color: #5fd47f; }
 .kk-r.over, .kk-d.over { color: #ff6b5e; }
-.kk-cell.given { font-weight: 700; color: var(--ink); background: color-mix(in srgb, var(--ink) 8%, var(--surface)); cursor: default; }
+.kk-r.on.met, .kk-d.on.met { color: #5fd47f; }
+.kk-cell.given { font-weight: 700; color: var(--ink); background: color-mix(in srgb, var(--ink) 9%, var(--kk-cell)); cursor: default; }
 .kk-cell.user { color: var(--accent); font-weight: 600; }
-.kk-cell.peer { background: color-mix(in srgb, var(--ink) 7%, var(--surface)); }
-.kk-cell.same { background: color-mix(in srgb, var(--accent) 22%, var(--surface)); }
-.kk-cell.sel { background: color-mix(in srgb, var(--mark) 45%, var(--surface)); box-shadow: inset 0 0 0 2px var(--ink); z-index: 1; }
-.kk-cell.bad { color: var(--danger); background: color-mix(in srgb, var(--danger) 16%, var(--surface)); }
-.kk-cell.hint-unit { background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
-.kk-cell.hint-focus { background: color-mix(in srgb, var(--accent) 30%, var(--surface)); }
+.kk-cell.peer { background: color-mix(in srgb, var(--ink) 7%, var(--kk-cell)); }
+.kk-cell.same { background: color-mix(in srgb, var(--accent) 22%, var(--kk-cell)); }
+.kk-cell.sel { background: color-mix(in srgb, var(--mark) 45%, var(--kk-cell)); box-shadow: inset 0 0 0 2px var(--ink); z-index: 1; }
+.kk-cell.bad { color: var(--danger); background: color-mix(in srgb, var(--danger) 16%, var(--kk-cell)); }
+.kk-cell.hint-unit { background: color-mix(in srgb, var(--accent) 14%, var(--kk-cell)); }
+.kk-cell.hint-focus { background: color-mix(in srgb, var(--accent) 30%, var(--kk-cell)); }
 .kk-cell.hint-cell { box-shadow: inset 0 0 0 3px var(--accent); z-index: 1; }
 .kk-notes {
   position: absolute; inset: 7%;
