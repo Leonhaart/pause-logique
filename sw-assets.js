@@ -1,5 +1,5 @@
 // Fichier généré par tools/gen-sw-assets.mjs, ne pas modifier à la main.
-self.APP_VERSION = "b826e6b746";
+self.APP_VERSION = "e93d1d1ba1";
 self.APP_ASSETS = [
   "./",
   "THIRD_PARTY_NOTICES.md",
@@ -7,6 +7,7 @@ self.APP_ASSETS = [
   "css/futoshiki.css",
   "css/games.css",
   "css/hashi.css",
+  "css/kakuro.css",
   "css/nonogram.css",
   "css/starbattle.css",
   "css/style.css",
@@ -55,6 +56,14 @@ self.APP_ASSETS = [
   "js/games/hashi/solver.js",
   "js/games/hashi/transform.js",
   "js/games/hashi/worker.js",
+  "js/games/kakuro/bank.js",
+  "js/games/kakuro/generator.js",
+  "js/games/kakuro/index.js",
+  "js/games/kakuro/pool.js",
+  "js/games/kakuro/puzzle.js",
+  "js/games/kakuro/solver.js",
+  "js/games/kakuro/transform.js",
+  "js/games/kakuro/worker.js",
   "js/games/nonogram/bank.js",
   "js/games/nonogram/generator.js",
   "js/games/nonogram/images.js",

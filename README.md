@@ -106,3 +106,12 @@ Les erreurs ne sont jamais punies : le réglage `errors` ne change que l'afficha
 - Banque de 100 grilles par taille (25/50/25) : `node tools/gen-bank-hashi.mjs` (3 s). Stock reconstruit en arrière-plan après chaque partie (clé `ha2:pool`).
 - Chaîne d'une grille : N*N caractères, `.` vide, `1`-`8` île.
 - Saisie : toucher une île, puis une île voisine : 1 pont, 2 ponts, aucun. Toucher un pont fait pareil. Île verte quand son compte est bon ; ponts et îles en trop en rouge selon le réglage d'erreurs.
+
+## Kakuro
+
+- Tailles 6, 8 et 10 (grille entière, consignes comprises). Le niveau s'écrit `<difficulté>-<taille>` (ex. `hard-8`).
+- Difficulté selon les techniques : facile (combinaisons de somme, chiffres déjà fixés, quelques chiffres donnés au départ), moyen (tous les remplissages possibles d'une suite), difficile (essai logique, un ou deux niveaux d'hypothèse).
+- Générateur : on fait croître une grille à solution unique (cases ou dominos ajoutés tant que le comptage de solutions reste à 1) jusqu'à atteindre le niveau visé. Facile : peu de chiffres donnés, retirés tant que le niveau tient.
+- Banque de 100 grilles par taille (25/50/25) : `node tools/gen-bank-kakuro.mjs` (environ 5 min, surtout le 10×10 difficile). Stock reconstruit en arrière-plan après chaque partie (clé `kk:pool`) ; sur téléphone, un 10×10 difficile peut mettre plusieurs secondes à se reconstruire.
+- Chaîne d'une grille : N*N cases séparées par des virgules, `.` case blanche, `1`-`9` chiffre donné, `#` case noire sans somme, `d/r` somme vers le bas / vers la droite (l'une peut être vide). La transposition varie l'aspect.
+- Appui sur une case blanche puis chiffre au pavé ; mode notes et notes automatiques ; somme en vert quand la suite est juste, en rouge si elle est dépassée (réglage « direct »). Indice en deux temps : suite surlignée, puis « Révéler » et « Placer ».
