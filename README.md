@@ -88,3 +88,11 @@ Les erreurs ne sont jamais punies : le réglage `errors` ne change que l'afficha
 - Générateur : tentes puis arbres voisins au hasard, gardés si la solution est unique ; rotation et symétrie varient l'aspect.
 - Banque de 100 grilles par taille (25/50/25) : `node tools/gen-bank-tents.mjs`. Stock reconstruit en arrière-plan après chaque partie.
 - Appui : vide, herbe, tente, vide (bouton « Tente » pour inverser). Glisser pour poser de l'herbe. L'herbe automatique (autour des tentes, lignes complètes, cases sans arbre) se désactive.
+
+## Akari
+
+- Tailles 7, 9 et 12. Le niveau s'écrit `<difficulté>-<taille>` (ex. `hard-9`). Les murs sans chiffre sont autorisés : le générateur retire les chiffres tant que la solution reste unique et du niveau visé.
+- Difficulté selon les techniques : facile (mur à 0, mur saturé, case éclairée, case éclairable d'un seul endroit), moyen (combinaisons autour d'un mur chiffré), difficile (essai logique, un ou deux niveaux d'hypothèse).
+- Banque de 100 grilles par taille (25/50/25) : `node tools/gen-bank-akari.mjs` (2 s). Stock reconstruit en arrière-plan après chaque partie (clé `ak:pool`).
+- Chaîne d'une grille : N*N caractères, `.` case blanche, `#` mur sans chiffre, `0`-`4` mur chiffré. Rotation et symétrie varient l'aspect.
+- Appui : ampoule, point (« pas d'ampoule »), vide. Glisser pour poser des points. Cases éclairées en jaune, mur vert quand son compte est bon ; ampoules en conflit et erreurs en rouge selon le réglage d'erreurs.

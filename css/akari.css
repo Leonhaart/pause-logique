@@ -1,0 +1,34 @@
+/* Akari */
+.ak { flex: 1; display: flex; flex-direction: column; gap: 10px; align-items: center; padding-top: 4px; }
+.ak > * { width: 100%; max-width: 560px; }
+.ak-board-wrap { width: min(100%, 560px, max(260px, calc(100dvh - 300px))); max-width: none; align-self: center; }
+.ak-board {
+  container-type: inline-size;
+  display: grid; grid-template-columns: repeat(var(--n), 1fr); grid-template-rows: repeat(var(--n), 1fr);
+  aspect-ratio: 1; width: 100%;
+  border: 2px solid var(--ink); box-sizing: border-box;
+  touch-action: none; user-select: none; -webkit-user-select: none;
+}
+.ak-cell {
+  position: relative; display: grid; place-items: center; min-width: 0; min-height: 0; box-sizing: border-box;
+  background: var(--surface); border: 1px solid color-mix(in srgb, var(--ink) 28%, transparent); cursor: pointer;
+}
+.ak-cell.lit { background: color-mix(in srgb, #f2c230 34%, var(--surface)); }
+.ak-cell.wall { cursor: default; background: var(--ink); border-color: var(--ink); }
+.ak-num { font: 700 5.4cqw/1 var(--sans); color: var(--surface); pointer-events: none; font-variant-numeric: tabular-nums; }
+.ak-cell.wall.met .ak-num { color: #5fd47f; }
+.ak-cell.wall.over .ak-num { color: #ff6b5e; }
+.ak-bulb { width: 84%; height: 84%; display: none; pointer-events: none; fill: #f2c230; stroke: var(--ink); stroke-width: 1.4; stroke-linecap: round; }
+.ak-dot { width: 15%; height: 15%; border-radius: 50%; background: color-mix(in srgb, var(--ink) 45%, transparent); display: none; pointer-events: none; }
+.ak-cell.has-bulb .ak-bulb { display: block; }
+.ak-cell.has-dot .ak-dot { display: block; }
+.ak-cell.bad { box-shadow: inset 0 0 0 3px var(--danger); z-index: 1; }
+.ak-cell.bad .ak-bulb { fill: var(--danger); }
+.ak-cell.sel { box-shadow: inset 0 0 0 3px var(--ink); z-index: 1; }
+.ak-cell.hint-unit { box-shadow: inset 0 0 0 100px color-mix(in srgb, var(--accent) 20%, transparent); }
+.ak-cell.hint-focus { box-shadow: inset 0 0 0 100px color-mix(in srgb, var(--accent) 36%, transparent); }
+.ak-cell.wall.hint-focus { box-shadow: inset 0 0 0 3px var(--accent); }
+.ak-cell.hint-cell { box-shadow: inset 0 0 0 4px var(--accent), inset 0 0 0 100px color-mix(in srgb, var(--accent) 28%, transparent); z-index: 1; }
+@media (max-width: 699px) {
+  .ak .tools { margin-top: auto; }
+}
