@@ -42,7 +42,10 @@ export default {
       const W = Math.min(container.clientWidth || 390, 640);
       const fs = 11;
       const clueW = maxRowClue * (fs + 7) + 16;
-      return clamp(Math.floor((W - clueW - 8) / N), 16, 52);
+      // en hauteur aussi : sur un écran d'ordinateur peu haut, toute la grille doit tenir (limite de .ng-scroll)
+      const clueH = maxColClue * (fs + 7) + 16;
+      const H = (window.innerHeight || 800) - 270;
+      return clamp(Math.min(Math.floor((W - clueW - 8) / N), Math.floor((H - clueH - 8) / N)), 16, 52);
     };
     let cs = storage.get(`ng:cs:${N}`, null) ?? fit();
     const csFont = () => clamp(Math.round(cs * 0.52), 10, 18);
