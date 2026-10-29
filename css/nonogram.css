@@ -1,0 +1,63 @@
+/* Nonogram */
+.ng { flex: 1; display: flex; flex-direction: column; gap: 10px; align-items: center; padding-top: 4px; }
+.ng > .game-msg, .ng > .tools { width: 100%; max-width: 640px; }
+.ng-scroll {
+  width: fit-content; max-width: 100%;
+  max-height: calc(100dvh - 270px);
+  overflow: auto; overscroll-behavior: contain;
+  border: 3px solid var(--ink); background: var(--surface);
+}
+.ng-grid { display: grid; grid-template-columns: auto calc(var(--n) * var(--cs)); width: max-content; }
+.ng-corner { position: sticky; top: 0; left: 0; z-index: 4; background: var(--surface); border-bottom: 2px solid var(--ink); border-right: 2px solid var(--ink); }
+.ng-colclues {
+  position: sticky; top: 0; z-index: 3; display: grid; grid-template-columns: repeat(var(--n), var(--cs));
+  background: var(--surface); border-bottom: 2px solid var(--ink);
+}
+.ng-colclue {
+  width: var(--cs); box-sizing: border-box; padding: 4px 0;
+  display: flex; flex-direction: column; justify-content: flex-end; align-items: center;
+  font: 600 var(--cf)/1.2 var(--sans); font-variant-numeric: tabular-nums;
+}
+.ng-colclue.g-r { box-shadow: inset -2px 0 0 var(--ink); }
+.ng-rowclues {
+  position: sticky; left: 0; z-index: 2; display: grid; grid-template-rows: repeat(var(--n), var(--cs));
+  background: var(--surface); border-right: 2px solid var(--ink);
+}
+.ng-rowclue {
+  height: var(--cs); box-sizing: border-box; padding: 0 8px;
+  display: flex; align-items: center; justify-content: flex-end; gap: 6px;
+  font: 600 var(--cf)/1 var(--sans); font-variant-numeric: tabular-nums;
+}
+.ng-rowclue.g-b { box-shadow: inset 0 -2px 0 var(--ink); }
+.ng-rowclue.done, .ng-colclue.done { color: var(--ink-2); }
+.ng-rowclue.done span, .ng-colclue.done span { opacity: 0.4; }
+.ng-rowclue.now, .ng-colclue.now { color: var(--accent); }
+.ng-cells {
+  display: grid; grid-template-columns: repeat(var(--n), var(--cs)); grid-template-rows: repeat(var(--n), var(--cs));
+  touch-action: none; user-select: none; -webkit-user-select: none; cursor: pointer;
+}
+.ng-cell { position: relative; box-sizing: border-box; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+.ng-cell.g-r { border-right: 2px solid var(--ink); }
+.ng-cell.g-b { border-bottom: 2px solid var(--ink); }
+.ng-cell.guide { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.ng-cell.on { background: var(--ink); }
+.ng-cell.x::after {
+  content: ""; position: absolute; inset: 24%;
+  background:
+    linear-gradient(45deg, transparent 43%, var(--ink-2) 43% 57%, transparent 57%),
+    linear-gradient(-45deg, transparent 43%, var(--ink-2) 43% 57%, transparent 57%);
+}
+.ng-cell.hint-line { background: color-mix(in srgb, var(--accent) 24%, transparent); }
+.ng-cell.hint-cell { box-shadow: inset 0 0 0 3px var(--accent); background: color-mix(in srgb, var(--accent) 30%, transparent); }
+.ng-cell.on.hint-cell { background: var(--ink); }
+.ng-cell.bad { box-shadow: inset 0 0 0 3px var(--danger); }
+.ng-cell.bad.on { background: var(--danger); }
+.ng-cell.bad.x::after {
+  background:
+    linear-gradient(45deg, transparent 43%, var(--danger) 43% 57%, transparent 57%),
+    linear-gradient(-45deg, transparent 43%, var(--danger) 43% 57%, transparent 57%);
+}
+@media (max-width: 699px) {
+  .ng .tools { margin-top: auto; }
+  .screen.play { padding-left: max(6px, env(safe-area-inset-left)); padding-right: max(6px, env(safe-area-inset-right)); }
+}

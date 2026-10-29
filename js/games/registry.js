@@ -7,7 +7,7 @@ export const LEVELS = ['easy', 'medium', 'hard'];
 export const GAMES = [
   { id: 'sudoku', phase: 1, ready: true },
   { id: 'starbattle', phase: 1, ready: true, sizes: [8, 10, 12] },
-  { id: 'nonogram', phase: 1, ready: false },
+  { id: 'nonogram', phase: 1, ready: true, sizes: [5, 10, 15] },
   { id: 'futoshiki', phase: 2, ready: false },
   { id: 'hashi', phase: 3, ready: false },
   { id: 'takuzu', phase: 2, ready: false },

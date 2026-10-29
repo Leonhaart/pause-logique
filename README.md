@@ -58,3 +58,10 @@ Les erreurs ne sont jamais punies : le réglage `errors` ne change que l'afficha
 - Banque : `js/games/starbattle/bank.js`, 100 grilles par taille (25/50/25). Régénération : `node tools/gen-bank-starbattle.mjs` (environ 3 minutes).
 - Stock local : une grille terminée est consommée, un worker (`worker.js`) refabrique seulement celles qui manquent, stockées dans le navigateur.
 - Difficulté : mesurée par un solveur à techniques (`solver.js`), jamais au hasard. Facile : déductions simples. Moyen : ensembles de 2 zones et peu d'essais logiques. Difficile : beaucoup d'essais logiques ou ensembles de 3 zones et plus. Seuils par taille dans `generator.js`.
+
+## Nonogram
+
+- Tailles 5×5, 10×10, 15×15, difficultés par techniques de déduction (niveau dans l'URL : `medium-10`).
+- Techniques : 1 recouvrement des blocs, 2 bornes (en tenant compte des croix), 3 ligne complète, 4 essai logique. Facile : niveau 1 seulement. Moyen : jusqu'au niveau 3 avec peu d'étapes. Difficile : beaucoup d'étapes de niveau 3 ou essai logique. Seuils par taille dans `js/games/nonogram/generator.js`.
+- Banque : `js/games/nonogram/bank.js`, 100 grilles par taille (25/50/25). Régénération : `node tools/gen-bank-nonogram.mjs`.
+- Images : les motifs 10×10 et 15×15 viennent d'emoji Noto (Google, licence Apache 2.0, voir `THIRD_PARTY_NOTICES.md`), réduits à des silhouettes. Source : `tools/nonogram-images.json`. Si ce fichier existe (`{ "10": [{ "name": "...", "bits": "hex" }], "15": [...] }`), le générateur les utilise comme motifs au lieu des motifs symétriques.

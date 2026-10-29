@@ -1,8 +1,10 @@
 // Fichier généré par tools/gen-sw-assets.mjs, ne pas modifier à la main.
-self.APP_VERSION = "ee714c35ff";
+self.APP_VERSION = "9212b236c1";
 self.APP_ASSETS = [
   "./",
+  "THIRD_PARTY_NOTICES.md",
   "css/games.css",
+  "css/nonogram.css",
   "css/starbattle.css",
   "css/style.css",
   "css/sudoku.css",
@@ -22,6 +24,14 @@ self.APP_ASSETS = [
   "js/core/stats.js",
   "js/core/storage.js",
   "js/core/timer.js",
+  "js/games/nonogram/bank.js",
+  "js/games/nonogram/generator.js",
+  "js/games/nonogram/images.js",
+  "js/games/nonogram/index.js",
+  "js/games/nonogram/pool.js",
+  "js/games/nonogram/puzzle.js",
+  "js/games/nonogram/solver.js",
+  "js/games/nonogram/worker.js",
   "js/games/placeholder.js",
   "js/games/registry.js",
   "js/games/starbattle/bank.js",
