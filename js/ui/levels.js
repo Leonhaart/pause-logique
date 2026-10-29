@@ -10,7 +10,8 @@ import { LEVELS, sizesOf, makeLevel, levelLabel, randomLevel } from '../games/re
 import { storage } from '../core/storage.js';
 import { gameIcon } from './icons.js';
 import { iconButton, iconEl, switchRow, segmented } from './components.js';
-import { openSettings, openRules } from './sheets.js';
+import { openSettings } from './sheets.js';
+import { infoPanel } from './info.js';
 import { pending, fly } from './transition.js';
 
 export function mountLevels(root, gameId, nav) {
@@ -73,11 +74,11 @@ export function mountLevels(root, gameId, nav) {
   renderSizes();
   const screen = h('section', { class: 'screen levels' },
     h('header', { class: 'topbar' }, back, h('div', { class: 'topbar-actions' },
-      iconButton('rules', t('levels.rules'), () => openRules(gameId)),
       iconButton('settings', t('nav.settings'), () => openSettings()))),
     h('div', { class: 'hero' }, hero,
       h('h1', { class: 'hero-title' }, t(`game.${gameId}.name`)),
       h('p', { class: 'hero-desc' }, t(`game.${gameId}.desc`))),
+    infoPanel(gameId),
     h('div', { class: 'levels-body' }, resume, sizes ? sizeRow : null, levelList, timerRow));
   root.replaceChildren(screen);
 

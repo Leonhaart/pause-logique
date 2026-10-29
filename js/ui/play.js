@@ -9,7 +9,7 @@ import { getSettings, subscribe } from '../core/settings.js';
 import { hashes } from '../core/router.js';
 import { getGame, importGame, levelLabel } from '../games/registry.js';
 import { iconButton, iconEl, openSheet } from './components.js';
-import { openSettings } from './sheets.js';
+import { openSettings, openRules } from './sheets.js';
 
 /** Écran de jeu : barre du haut, minuteur, pause, sauvegarde, fin de partie. Le jeu remplit `host`. */
 export function mountPlay(root, route, nav) {
@@ -30,6 +30,7 @@ export function mountPlay(root, route, nav) {
 
   const timeEl = h('span', { class: 'timer-text' }, '00:00');
   const timerBtn = h('button', { class: 'timer-btn', onClick: () => setPaused(!paused), 'aria-label': t('shell.pause') }, timeEl);
+  const helpBtn = iconButton('rules', t('levels.rules'), () => openRules(gameId));
   const settingsBtn = iconButton('settings', t('nav.settings'), () => openSettings());
   const host = h('div', { class: 'play-host' });
   const overlay = h('div', { class: 'pause-overlay', hidden: true },
@@ -40,7 +41,7 @@ export function mountPlay(root, route, nav) {
     h('header', { class: 'topbar play-top' },
       iconButton('back', t('nav.back'), () => nav.go(hashes.levels(gameId))),
       h('div', { class: 'play-title' }, h('span', { class: 'play-game' }, t(`game.${gameId}.name`)), h('span', { class: 'play-level' }, levelLabel(level))),
-      h('div', { class: 'topbar-actions' }, timerBtn, settingsBtn)),
+      h('div', { class: 'topbar-actions' }, timerBtn, helpBtn, settingsBtn)),
     h('div', { class: 'play-main' }, host, overlay));
   root.replaceChildren(screen);
 

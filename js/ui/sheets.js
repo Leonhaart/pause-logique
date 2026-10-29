@@ -6,6 +6,8 @@ import { loadStats, currentStreak, resetStats } from '../core/stats.js';
 import { GAMES, levelKeys, levelLabel } from '../games/registry.js';
 import { openSheet, segmented, switchRow } from './components.js';
 
+import { infoTabs } from './info.js';
+
 export function openSettings() {
   let unsub;
   return openSheet({
@@ -81,7 +83,7 @@ export function openRules(gameId) {
   return openSheet({
     title: t(`game.${gameId}.name`),
     build(body) {
-      body.append(h('p', { class: 'rules-text', lang: lang() }, t(`game.${gameId}.rules`)));
+      body.append(infoTabs(gameId));
     },
   });
 }

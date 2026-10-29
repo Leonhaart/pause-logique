@@ -256,3 +256,18 @@ h1, h2, h3, p { margin: 0; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* ---------- Encadré description (onglets Règles / Techniques) ---------- */
+.info { border: 2px solid var(--ink); border-radius: 6px; background: var(--surface); width: 100%; }
+.info-toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 48px; padding: 0 16px; background: none; border: 0; font: 700 17px/1 var(--serif); text-align: left; }
+.info-chevron { transition: transform 160ms ease; }
+.info-toggle[aria-expanded="true"] .info-chevron { transform: rotate(180deg); }
+.info-body { padding: 0 14px 14px; border-top: 1px solid var(--rule); display: flex; flex-direction: column; gap: 10px; padding-top: 12px; }
+.info-body[hidden] { display: none; }
+.info-tabs-wrap { display: flex; flex-direction: column; gap: 12px; }
+.info-panel { text-align: left; }
+.info-panel .rules-text { font: 16px/1.5 var(--serif); padding-bottom: 0; }
+.tech-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font: 16px/1.45 var(--serif); }
+.seg-btn[role="tab"][aria-selected="true"] { background: var(--ink); color: var(--bg); font-weight: 700; }
+.levels-body, .hero .info { max-width: 520px; }
+.hero .info { margin-top: 8px; text-align: left; }
