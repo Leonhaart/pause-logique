@@ -13,7 +13,7 @@ export const GAMES = [
   { id: 'takuzu', phase: 2, ready: true, sizes: [6, 8, 10] },
   { id: 'kakuro', phase: 3, ready: false },
   { id: 'akari', phase: 3, ready: false },
-  { id: 'tents', phase: 2, ready: false },
+  { id: 'tents', phase: 2, ready: true, sizes: [6, 8, 10] },
 ];
 
 // Jeux avec choix de taille : le niveau est alors « difficulté-taille » (ex. hard-12).

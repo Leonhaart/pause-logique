@@ -20,7 +20,7 @@ export function probeWorker(timeoutMs = 4000) {
   });
 }
 
-const POOLS = ['sb:pool', 'ng:pool', 'tk:pool', 'fu:pool'];
+const POOLS = ['sb:pool', 'ng:pool', 'tk:pool', 'fu:pool', 'te:pool'];
 
 /** Grilles fabriquées sur l'appareil et en réserve, tous jeux confondus. */
 export function rebuiltCount() {

@@ -1,5 +1,5 @@
 // Fichier généré par tools/gen-sw-assets.mjs, ne pas modifier à la main.
-self.APP_VERSION = "4d8adf11cc";
+self.APP_VERSION = "f647ab764e";
 self.APP_ASSETS = [
   "./",
   "THIRD_PARTY_NOTICES.md",
@@ -10,6 +10,7 @@ self.APP_ASSETS = [
   "css/style.css",
   "css/sudoku.css",
   "css/takuzu.css",
+  "css/tents.css",
   "icons/apple-touch-icon.png",
   "icons/icon-192.png",
   "icons/icon-512.png",
@@ -68,6 +69,14 @@ self.APP_ASSETS = [
   "js/games/takuzu/solver.js",
   "js/games/takuzu/transform.js",
   "js/games/takuzu/worker.js",
+  "js/games/tents/bank.js",
+  "js/games/tents/generator.js",
+  "js/games/tents/index.js",
+  "js/games/tents/pool.js",
+  "js/games/tents/puzzle.js",
+  "js/games/tents/solver.js",
+  "js/games/tents/transform.js",
+  "js/games/tents/worker.js",
   "js/i18n/en.js",
   "js/i18n/fr.js",
   "js/main.js",

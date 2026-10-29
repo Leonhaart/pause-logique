@@ -80,3 +80,11 @@ Les erreurs ne sont jamais punies : le réglage `errors` ne change que l'afficha
 - Au moins un chiffre est toujours donné. Les grilles peuvent tourner et être symétriques ; l'inversion des chiffres (d devient N+1-d, signes inversés) varie aussi l'aspect.
 - Banque de 100 grilles par taille (25/50/25) : `node tools/gen-bank-futoshiki.mjs`. Stock reconstruit en arrière-plan après chaque partie.
 - Notes, notes automatiques (lignes, colonnes et signes), indice en deux temps, vérification.
+
+## Tents
+
+- Tailles 6, 8 et 10. Le niveau s'écrit `<difficulté>-<taille>` (ex. `hard-8`).
+- Difficulté selon les techniques : facile (comptes, voisinage, arbre à un seul choix), moyen (case touchant tous les choix d'un arbre, toutes les façons de remplir une ligne), difficile (essai logique).
+- Générateur : tentes puis arbres voisins au hasard, gardés si la solution est unique ; rotation et symétrie varient l'aspect.
+- Banque de 100 grilles par taille (25/50/25) : `node tools/gen-bank-tents.mjs`. Stock reconstruit en arrière-plan après chaque partie.
+- Appui : vide, herbe, tente, vide (bouton « Tente » pour inverser). Glisser pour poser de l'herbe. L'herbe automatique (autour des tentes, lignes complètes, cases sans arbre) se désactive.
