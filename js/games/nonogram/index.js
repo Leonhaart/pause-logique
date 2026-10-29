@@ -144,7 +144,7 @@ export default {
       message = name ? { text: t('ng.picture', { name }) } : null;
       render();
       consume(N, diff, pid);
-      ctx.complete();
+      ctx.complete({ note: name ? t('ng.picture', { name }) : null });
     }
 
     // --- indices ------------------------------------------------------------------

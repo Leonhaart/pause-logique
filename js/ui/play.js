@@ -4,7 +4,7 @@ import { formatTime } from '../core/format.js';
 import { Timer } from '../core/timer.js';
 import { createRng, newSeed } from '../core/rng.js';
 import { saveGame, loadSave, clearSave } from '../core/saves.js';
-import { recordWin } from '../core/stats.js';
+import { recordWin, levelStats } from '../core/stats.js';
 import { getSettings, subscribe } from '../core/settings.js';
 import { hashes } from '../core/router.js';
 import { getGame, importGame, levelLabel } from '../games/registry.js';
@@ -73,7 +73,7 @@ export function mountPlay(root, route, nav) {
     clearTimeout(saveTimer);
     saveTimer = setTimeout(persistNow, 400);
   }
-  function complete() {
+  function complete(info = {}) {
     if (finished || destroyed) return;
     finished = true;
     timer.pause();
@@ -83,12 +83,21 @@ export function mountPlay(root, route, nav) {
     const { record } = recordWin(gameId, level, timed ? ms : null);
     clearSave(gameId);
     applyTimerUi();
-    showDone(ms, timed, record);
+    showDone(ms, timed, record, info);
   }
-  function showDone(ms, timed, record) {
+  function showDone(ms, timed, record, info) {
     const go = (hash) => {
       doneSheet?.close();
       nav.go(hash);
+    };
+    const again = () => go(hashes.play(gameId, level, newSeed()));
+    const st = levelStats(gameId, level);
+    const view = () => {
+      doneSheet?.close();
+      screen.append(h('div', { class: 'done-bar' },
+        h('span', { class: 'done-bar-title' }, iconEl('check'), t('done.title')),
+        h('button', { class: 'btn btn-primary', onClick: again }, t('done.again')),
+        h('button', { class: 'btn', onClick: () => go(hashes.levels(gameId)) }, t('done.levels'))));
     };
     doneSheet = openSheet({
       title: t('done.title'),
@@ -96,11 +105,18 @@ export function mountPlay(root, route, nav) {
       build(body) {
         body.append(
           h('div', { class: 'done' },
-            timed ? h('p', { class: 'done-time' }, t('done.time', { time: formatTime(ms) })) : null,
+            h('p', { class: 'done-level' }, `${t(`game.${gameId}.name`)} · ${levelLabel(level)}`),
+            info.note ? h('p', { class: 'done-note' }, info.note) : null,
+            timed ? h('p', { class: 'done-time' }, t('done.time', { time: formatTime(ms) })) : h('p', { class: 'row-hint' }, t('done.noTimer')),
             record ? h('p', { class: 'done-record' }, iconEl('check'), t('done.record')) : null,
+            h('ul', { class: 'done-stats' },
+              st.best != null ? h('li', {}, t('done.best', { time: formatTime(st.best) })) : null,
+              st.timed ? h('li', {}, t('done.avg', { time: formatTime(st.sum / st.timed) })) : null,
+              h('li', {}, t('done.count', { n: st.done }))),
             h('p', { class: 'row-hint' }, t('done.seed', { seed })),
             h('div', { class: 'done-actions' },
-              h('button', { class: 'btn btn-primary', onClick: () => go(hashes.play(gameId, level, newSeed())) }, t('done.again')),
+              h('button', { class: 'btn btn-primary', onClick: again }, t('done.again')),
+              h('button', { class: 'btn', onClick: view }, t('done.view')),
               h('button', { class: 'btn', onClick: () => go(hashes.levels(gameId)) }, t('done.levels')),
               h('button', { class: 'btn btn-quiet', onClick: () => go(hashes.home()) }, t('done.home')))));
       },
@@ -113,7 +129,7 @@ export function mountPlay(root, route, nav) {
     restore: restore ? restore.state : null,
     settings: getSettings,
     onSettings: (fn) => subscribe(fn),
-    save, complete,
+    save, complete: (info) => complete(info),
     isPaused: () => paused,
     t,
   };

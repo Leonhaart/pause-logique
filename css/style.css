@@ -287,3 +287,11 @@ h1, h2, h3, p { margin: 0; }
 .diag-line { font-weight: 600; font-variant-numeric: tabular-nums; }
 .diag-line.ok { color: var(--ok); }
 .diag-line.ko { color: var(--danger); }
+
+/* Fin de grille */
+.done-level { font-weight: 600; color: var(--ink-2); }
+.done-note { font: 700 24px/1.2 var(--serif); }
+.done-stats { list-style: none; margin: 4px 0 0; padding: 8px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); display: flex; flex-direction: column; gap: 4px; font-variant-numeric: tabular-nums; }
+.done-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 0 max(8px, env(safe-area-inset-bottom)); border-top: 2px solid var(--ink); }
+.done-bar-title { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--ok); margin-right: auto; }
+.done-bar .btn { min-height: 44px; padding: 0 14px; }
