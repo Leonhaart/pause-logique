@@ -124,3 +124,17 @@ test('hashi : un essai logique donne l’hypothèse, la chaîne et la cause de l
   }
   assert.ok(seen > 0);
 });
+
+import { BANK as KK } from '../js/games/kakuro/bank.js';
+import * as kk from '../js/games/kakuro/solver.js';
+
+test('kakuro : cellSupports donne, pour chaque suite, les chiffres qu’elle autorise dans la case', () => {
+  const N = 6;
+  const e = KK[N].medium[0];
+  const p = kk.parsePuz(typeof e === 'string' ? e : e.puz, N);
+  const st = kk.newState(p);
+  const sol = kk.countSolutions(p, 1).sol;
+  for (const i of st.g.whites.slice(0, 12)) {
+    for (const { mask } of kk.cellSupports(st, i)) assert.ok(mask & (1 << (sol[i] - 1)), 'le vrai chiffre est toujours autorisé');
+  }
+});

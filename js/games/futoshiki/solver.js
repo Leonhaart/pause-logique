@@ -268,13 +268,6 @@ export function planPlacement(p, grid, last = null, rnd = Math.random) {
   const st = newState({ N, giv: Int8Array.from(grid), rel: p.rel });
   if (settle(st)) return null;
   const rc = (i) => [Math.floor(i / N), i % N];
-  const naked = [];
-  for (let i = 0; i < st.cand.length; i++) if (pop(st.cand[i]) === 1 && !grid[i]) naked.push(i);
-  if (naked.length) {
-    let best = naked[Math.floor(rnd() * naked.length)];
-    if (last) best = naked.reduce((a, b) => (manhattan(rc(b), last) < manhattan(rc(a), last) ? b : a));
-    return { cell: best, digit: lowDigit(st.cand[best]), step: { tech: 'naked', level: 0, focus: [best], units: [] }, prior: [] };
-  }
   const newly = (s) => {
     const t = { ...st, cand: st.cand.slice() };
     applyStep(t, s);
@@ -284,9 +277,15 @@ export function planPlacement(p, grid, last = null, rnd = Math.random) {
     return out;
   };
   const plan = planHint({
-    collect: () => allSteps(st, 5),
+    // d'abord les cases déjà réduites à un seul chiffre (par l'ensemble des contraintes) mais pas encore posées
+    collect: () => {
+      const naked = [];
+      for (let i = 0; i < st.cand.length; i++) if (pop(st.cand[i]) === 1 && !grid[i]) naked.push(i);
+      if (naked.length) return naked.map((i) => ({ tech: 'naked', level: 0, set: [[i, st.cand[i]]], focus: [i], units: [] }));
+      return allSteps(st, 5);
+    },
     apply: (s) => { applyStep(st, s); settle(st); },
-    fresh: (s) => newly(s),
+    fresh: (s) => (s.tech === 'naked' ? [s.focus[0]] : newly(s)),
     where: (s, f) => f.map(rc),
     last,
     rnd,

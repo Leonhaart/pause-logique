@@ -1,7 +1,7 @@
 // Kakuro : interface. Appui sur une case blanche, puis pavé de chiffres ; mode notes ; indice en deux temps.
 import { h } from '../../core/dom.js';
 import { History, toolButton } from '../../ui/kit.js';
-import { geoOf, newState, allSteps, isSolution, autoCandidates } from './solver.js';
+import { geoOf, newState, allSteps, cellSupports, isSolution, autoCandidates } from './solver.js';
 import { planHint, manhattan } from '../../core/hint.js';
 import { puzzleFor } from './puzzle.js';
 import { consume, refillAll, stockInfo, onStock } from './pool.js';
@@ -171,7 +171,12 @@ export default {
       const last = sel >= 0 ? [row(sel), col(sel)] : null;
       // toutes les déductions disponibles : la plus facile, et à égalité la plus proche de la case touchée en dernier
       const plan = planHint({
-        collect: () => allSteps(st, 4),
+        // d'abord les cases déjà déterminées par l'ensemble des suites mais pas encore posées par le joueur
+        collect: () => {
+          const pend = g.whites.filter((i) => !isGiven(i) && single(st.cand[i]) && digitOf(st.cand[i]) !== vals[i]);
+          if (pend.length) return pend.map((i) => ({ tech: 'cross', level: 0, changes: [[i, st.cand[i]]], focus: [i], runs: g.runOf[i].filter((r) => r >= 0) }));
+          return allSteps(st, 4);
+        },
         apply: (s) => { for (const [i, m] of s.changes) st.cand[i] &= m; },
         fresh: (s) => s.changes.filter(([i, m]) => !isGiven(i) && single(m) && digitOf(m) !== vals[i]).map(([i, m]) => [i, digitOf(m)]),
         where: (s, f) => f.map(([i]) => [row(i), col(i)]),
@@ -208,7 +213,19 @@ export default {
         p.n = run.cells.length;
         return run;
       };
-      if (step.tech === 'naked') {
+      if (step.tech === 'cross') {
+        const sup = cellSupports(st, i);
+        const digs = (m) => [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((k) => m & bit(k)).join(', ');
+        sup.forEach(({ run, mask }, k) => {
+          const rn = g.runs[run];
+          const sfx = k === 0 ? '' : '2';
+          p['dir' + sfx] = t(rn.dir === 'h' ? 'kk.dir.h' : 'kk.dir.v');
+          p['sum' + sfx] = rn.sum;
+          p['n' + sfx] = rn.cells.length;
+          p['digits' + sfx] = digs(mask);
+        });
+        p.two = sup.length > 1;
+      } else if (step.tech === 'naked') {
         const f = step.focus[0];
         p.r0 = row(f) + 1;
         p.c0 = col(f) + 1;
@@ -241,7 +258,7 @@ export default {
           action: { label: t('kk.hint.place', { d: hn.d }), run: () => setValue(hn.i, hn.d) },
         };
       } else {
-        let text = t(hn.step.tech.startsWith('trial') ? (hn.step.why?.ghost?.length ? 'kk.hint.trialChain' : 'kk.hint.trial') : `kk.hint.${hn.step.tech}`, hn.info);
+        let text = t(hn.step.tech === 'cross' ? (hn.info.two ? 'kk.hint.cross' : 'kk.hint.cross1') : hn.step.tech.startsWith('trial') ? (hn.step.why?.ghost?.length ? 'kk.hint.trialChain' : 'kk.hint.trial') : `kk.hint.${hn.step.tech}`, hn.info);
         const names = [...new Set(hn.prior.filter((p) => p !== hn.step.tech).map((p) => t(`kk.prior.${p}`)))];
         if (names.length) text += ' ' + t('kk.hint.prior', { list: names.join(', ') });
         message = { text, action: { label: t('hint.reveal'), run: () => askHint() } };

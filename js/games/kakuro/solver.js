@@ -366,6 +366,20 @@ export function allSteps(st, maxLevel = 4) {
 }
 
 
+/** Pour la case i : pour chacune de ses suites, les chiffres que cette suite autorise ici (les autres suites mises à part). */
+export function cellSupports(st, i) {
+  const { g } = st;
+  const tmp = st.cand.slice();
+  tmp[i] = 0x1ff;
+  const out = [];
+  for (const ri of g.runOf[i]) {
+    if (ri < 0) continue;
+    const run = g.runs[ri];
+    out.push({ run: ri, mask: runSupport(run, tmp)[run.cells.indexOf(i)] });
+  }
+  return out;
+}
+
 export const valuesOf = (st) => Int8Array.from(st.cand, (m) => (single(m) ? digitOf(m) : 0));
 
 /** Résout avec les techniques ; renvoie { solved, rating, counts, vals }. */

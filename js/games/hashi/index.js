@@ -104,7 +104,16 @@ export default {
       const lowOf = (m) => (m & 1 ? 0 : m & 2 ? 1 : 2);
       // toutes les déductions disponibles : la plus facile, et à égalité la plus proche de la dernière liaison touchée
       const plan = planHint({
-        collect: () => allSteps(st, 4),
+        // d'abord les liaisons déjà fixées par l'ensemble des contraintes mais pas encore posées
+        collect: () => {
+          const pend = [];
+          for (let x = 0; x < E; x++) {
+            const m = st.dom[x];
+            if ((m & (m - 1)) === 0 && lowOf(m) >= 1 && marks[x] < lowOf(m)) pend.push(x);
+          }
+          if (pend.length) return pend.map((x) => ({ tech: 'determined', level: 0, changes: [[x, st.dom[x]]], focus: [g.edges[x].a, g.edges[x].b], edges: [x] }));
+          return allSteps(st, 4);
+        },
         apply: (s) => { for (const [x, m] of s.changes) st.dom[x] &= m; },
         fresh: (s) => s.changes.filter(([x, m]) => lowOf(m) >= 1 && marks[x] < lowOf(m)).map(([x, m]) => [x, lowOf(m)]),
         where: (s, f) => f.map(([x]) => mid(x)),
