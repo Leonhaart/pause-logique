@@ -156,13 +156,13 @@ function stepBounds(st) {
         if (a > lo(dom[x])) raised = true;
       }
     }
-    if (changes.length) return { tech: allZero ? 'sat' : raised ? 'must' : 'cap', level: 1, changes, focus: [i], edges: changes.map(([x]) => x) };
+    if (changes.length) { const _r = emitStep({ tech: allZero ? 'sat' : raised ? 'must' : 'cap', level: 1, changes, focus: [i], edges: changes.map(([x]) => x) }); if (_r) return _r; }
   }
   for (let x = 0; x < dom.length; x++) {
     if (lo(dom[x]) < 1) continue;
     const changes = [];
     for (const y of g.cross[x]) if (dom[y] !== 1) changes.push([y, dom[y] & 1]);
-    if (changes.length) return { tech: 'cross', level: 1, changes, focus: [g.edges[x].a, g.edges[x].b], edges: [x, ...changes.map(([y]) => y)] };
+    if (changes.length) { const _r = emitStep({ tech: 'cross', level: 1, changes, focus: [g.edges[x].a, g.edges[x].b], edges: [x, ...changes.map(([y]) => y)] }); if (_r) return _r; }
   }
   return null;
 }
@@ -173,7 +173,7 @@ function stepIso(st) {
     for (const k of [1, 2]) {
       if (!(dom[x] & (1 << k))) continue;
       if (closedComponent(st, x, k).length) {
-        return { tech: 'iso', level: 2, changes: [[x, dom[x] & ~(1 << k)]], focus: [g.edges[x].a, g.edges[x].b], edges: [x] };
+        { const _r = emitStep({ tech: 'iso', level: 2, changes: [[x, dom[x] & ~(1 << k)]], focus: [g.edges[x].a, g.edges[x].b], edges: [x] }); if (_r) return _r; }
       }
     }
   }
@@ -199,14 +199,29 @@ function stepTrial(st, lvl) {
       if (!(dom[x] & (1 << k))) continue;
       const t = cloneState(st);
       t.dom[x] = 1 << k;
-      if (propagate(t, lvl - 1)) return { tech: `trial${lvl - 1}`, level: lvl, changes: [[x, dom[x] & ~(1 << k)]], focus: [g.edges[x].a, g.edges[x].b], edges: [x] };
+      if (propagate(t, lvl - 1)) { const _r = emitStep({ tech: `trial${lvl - 1}`, level: lvl, changes: [[x, dom[x] & ~(1 << k)]], focus: [g.edges[x].a, g.edges[x].b], edges: [x] }); if (_r) return _r; }
     }
   }
   return null;
 }
 
+
+
+// --- énumération des déductions (indices) : voir js/core/hint.js ---
+let sink = null;
+const STOP = { stop: true };
+/** Pendant l'énumération, remplace « return pas » par un enregistrement et continue le balayage. */
+function emitStep(s) {
+  if (!sink) return s;
+  if (s.level > sink.max || (sink.length && s.level > sink.min)) return null;
+  sink.push(s);
+  if (s.level < sink.min) sink.min = s.level;
+  if (sink.length >= (s.level >= 3 ? 4 : 40)) throw STOP;
+  return null;
+}
+
 /** Prochaine déduction de niveau <= maxLevel, la plus simple d'abord. */
-export function findStep(st, maxLevel = 4) {
+function findStep0(st, maxLevel = 4) {
   let s = stepBounds(st);
   if (s) return s;
   if (maxLevel >= 2 && (s = stepIso(st))) return s;
@@ -214,6 +229,34 @@ export function findStep(st, maxLevel = 4) {
   if (maxLevel >= 4 && (s = stepTrial(st, 4))) return s;
   return null;
 }
+
+export function findStep(st, maxLevel = 4) {
+  const saved = sink;
+  sink = null;
+  try {
+    return findStep0(st, maxLevel);
+  } finally {
+    sink = saved;
+  }
+}
+
+/** Toutes les déductions disponibles au niveau de technique le plus simple (indices). */
+export function allSteps(st, maxLevel = 4) {
+  sink = [];
+  sink.max = maxLevel;
+  sink.min = 99;
+  const go = (f, heavy) => { if (sink.length && heavy) return; f(); };
+  try {
+    go(() => stepBounds(st));
+    if (maxLevel >= 2) go(() => stepIso(st));
+    if (maxLevel >= 3) go(() => stepTrial(st, 3), true);
+    if (maxLevel >= 4) go(() => stepTrial(st, 4), true);
+  }
+  catch (e) { if (e !== STOP) throw e; }
+  const r = sink; sink = null;
+  return r;
+}
+
 
 export const valuesOf = (st) => Int8Array.from(st.dom, (m) => (size(m) === 1 ? lo(m) : -1));
 

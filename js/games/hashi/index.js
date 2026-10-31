@@ -1,7 +1,8 @@
 // Hashi : interface. On touche une île puis une île voisine : 1 pont, 2 ponts, 0. Toucher un pont fait pareil.
 import { h, svgEl } from '../../core/dom.js';
 import { History, toolButton } from '../../ui/kit.js';
-import { geoOf, newState, findStep, isSolution } from './solver.js';
+import { geoOf, newState, allSteps, isSolution } from './solver.js';
+import { planHint, manhattan } from '../../core/hint.js';
 import { puzzleFor } from './puzzle.js';
 import { consume, refillAll, stockInfo, onStock } from './pool.js';
 
@@ -58,8 +59,12 @@ export default {
     // --- historique ----------------------------------------------------------
     const persist = () => ctx.save({ ...hist.dump(), pid });
     function reset() { wrong = new Set(); hint = null; message = null; }
+    let lastX = -1; // dernière liaison modifiée par le joueur
     function commit() {
       reset();
+      const before = hist.cur;
+      const now = snapshot();
+      for (let x = 0; x < E; x++) if (before[x] !== now[x]) { lastX = x; break; }
       if (hist.commit(snapshot())) persist();
       render();
       checkComplete();
@@ -94,41 +99,70 @@ export default {
       // On ne retient que les arêtes justes déjà posées par le joueur.
       const st = newState(puz);
       for (let x = 0; x < E; x++) if (marks[x] === sol[x]) st.dom[x] = 1 << sol[x];
+      const mid = (x) => { const a = g.islands[g.edges[x].a]; const b = g.islands[g.edges[x].b]; return [(a.r + b.r) / 2, (a.c + b.c) / 2]; };
+      const last = lastX >= 0 ? mid(lastX) : null;
+      const lowOf = (m) => (m & 1 ? 0 : m & 2 ? 1 : 2);
+      // toutes les déductions disponibles : la plus facile, et à égalité la plus proche de la dernière liaison touchée
+      const plan = planHint({
+        collect: () => allSteps(st, 4),
+        apply: (s) => { for (const [x, m] of s.changes) st.dom[x] &= m; },
+        fresh: (s) => s.changes.filter(([x, m]) => lowOf(m) >= 1 && marks[x] < lowOf(m)).map(([x, m]) => [x, lowOf(m)]),
+        where: (s, f) => f.map(([x]) => mid(x)),
+        last,
+      });
       let found = null;
-      const prior = [];
-      for (let guard = 0; guard < 400 && !found; guard++) {
-        const s = findStep(st, 4);
-        if (!s) break;
-        const fresh = [];
-        for (const [x, m] of s.changes) {
-          const lo = m & 1 ? 0 : m & 2 ? 1 : 2;
-          if (lo >= 1 && marks[x] < lo) fresh.push([x, lo]);
-          st.dom[x] = m;
+      if (plan) found = { step: plan.step, cells: plan.fresh, prior: plan.prior, info: explain(plan.step, plan.fresh, st) };
+      else {
+        let x = -1;
+        let bd = Infinity;
+        for (let k = 0; k < E; k++) {
+          if (marks[k] >= sol[k]) continue;
+          const dd = last ? manhattan(mid(k), last) : 0;
+          if (dd < bd) { bd = dd; x = k; }
         }
-        if (fresh.length) found = { step: s, cells: fresh, prior: [...new Set(prior)] };
-        else prior.push(s.tech);
-      }
-      if (!found) {
-        const x = [...Array(E).keys()].find((k) => marks[k] < sol[k]);
-        if (x == null) return;
-        found = { step: { tech: 'search', focus: [g.edges[x].a, g.edges[x].b], edges: [x] }, cells: [[x, marks[x] + 1]], prior: [] };
+        if (x < 0) return;
+        found = { step: { tech: 'search', focus: [g.edges[x].a, g.edges[x].b], edges: [x] }, cells: [[x, marks[x] + 1]], prior: [], info: islandsOf(x) };
       }
       hint = { ...found, revealed: false };
       showHint();
     }
+    /** Îles aux deux bouts d'une liaison, pour les textes. */
+    function islandsOf(x) {
+      const a = g.islands[g.edges[x].a];
+      const b = g.islands[g.edges[x].b];
+      return { r: a.r + 1, c: a.c + 1, v: a.v, r2: b.r + 1, c2: b.c + 1 };
+    }
+    /** Paramètres concrets du texte d'indice (île, voisine, nombre de ponts). */
+    function explain(step, fresh, st) {
+      const [x, n] = fresh[0];
+      const p = { ...islandsOf(x), n };
+      if (step.tech.startsWith('trial')) {
+        const ch = step.changes.find(([y]) => y === x) ?? step.changes[0];
+        const removed = st.dom[ch[0]] & ~ch[1];
+        p.k = [0, 1, 2].filter((k) => removed & (1 << k)).join(', ');
+      }
+      // l'île de référence est celle de la déduction (focus), pas forcément le premier bout de la liaison
+      const f = step.focus?.[0];
+      if ((step.tech === 'must' || step.tech === 'cap') && f != null && f !== g.edges[x].a) {
+        const a = g.islands[g.edges[x].b];
+        const b = g.islands[g.edges[x].a];
+        Object.assign(p, { r: a.r + 1, c: a.c + 1, v: a.v, r2: b.r + 1, c2: b.c + 1 });
+      }
+      return p;
+    }
     function showHint() {
       const hn = hint;
       if (hn.revealed) {
-        const [x] = hn.cells[0];
+        const [x, n] = hn.cells[0];
         const a = g.islands[g.edges[x].a];
         const b = g.islands[g.edges[x].b];
         message = {
-          text: hn.cells.length === 1 ? t('ha.hint.revealOne', { r1: a.r + 1, c1: a.c + 1, r2: b.r + 1, c2: b.c + 1 }) : t('ha.hint.revealMany'),
+          text: hn.cells.length === 1 ? t('ha.hint.revealOne', { r1: a.r + 1, c1: a.c + 1, r2: b.r + 1, c2: b.c + 1, n }) : t('ha.hint.revealMany'),
           action: { label: t('ha.hint.place'), run: () => { for (const [y, v] of hn.cells) marks[y] = v; commit(); } },
         };
       } else {
-        let text = t(`ha.hint.${hn.step.tech}`);
-        const names = hn.prior.map((p) => t(`ha.prior.${p}`));
+        let text = t(`ha.hint.${hn.step.tech}`, hn.info);
+        const names = [...new Set(hn.prior.filter((p) => p !== hn.step.tech).map((p) => t(`ha.prior.${p}`)))];
         if (names.length) text += ' ' + t('ha.hint.prior', { list: names.join(', ') });
         message = { text, action: { label: t('hint.reveal'), run: () => askHint() } };
       }

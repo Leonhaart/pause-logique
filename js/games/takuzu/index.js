@@ -2,7 +2,8 @@
 // aucune ligne ni colonne en double. ● = 1, ○ = 0.
 import { h } from '../../core/dom.js';
 import { History, toolButton } from '../../ui/kit.js';
-import { geo, findStep } from './solver.js';
+import { geo, allSteps } from './solver.js';
+import { planHint, manhattan } from '../../core/hint.js';
 import { puzzleFor } from './puzzle.js';
 import { consume, refillAll, stockInfo, onStock } from './pool.js';
 
@@ -89,14 +90,39 @@ export default {
       if (hint && !hint.revealed) { hint.revealed = true; return showHint(); }
       // On ne retient que les cases justes du joueur.
       const g = Int8Array.from(marks, (v, i) => (v === sol[i] ? v : -1));
-      let step = g.includes(-1) ? findStep(g, N, 5) : null;
-      if (!step || step.contra) {
-        const i = [...Array(NN).keys()].find((k) => marks[k] !== sol[k]);
-        if (i == null) return;
-        step = { tech: 'search', cells: [[i, sol[i]]], units: [] };
+      const rcOf = (i) => [Math.floor(i / N), i % N];
+      const plan = g.includes(-1) ? planHint({
+        collect: () => allSteps(g, N, 5),
+        apply: (st) => { if (!st.contra) for (const [i, v] of st.cells) g[i] = v; },
+        fresh: (st) => (st.contra ? [] : st.cells.filter(([i]) => g[i] < 0)),
+        where: (st, f) => f.map(([i]) => rcOf(i)),
+        last: sel >= 0 ? rcOf(sel) : null,
+      }) : null;
+      let step = plan ? { ...plan.step, cells: plan.fresh, prior: plan.prior } : null;
+      if (!step) {
+        const cand = [...Array(NN).keys()].filter((k) => marks[k] !== sol[k]);
+        if (!cand.length) return;
+        if (sel >= 0) cand.sort((x, y) => manhattan(rcOf(x), rcOf(sel)) - manhattan(rcOf(y), rcOf(sel)));
+        step = { tech: 'search', cells: [[cand[0], sol[cand[0]]]], units: [], prior: [] };
       }
       hint = { step, revealed: false };
       showHint();
+    }
+    const SYM = (v) => (v === 1 ? '●' : '○');
+    /** Paramètres concrets : ligne/colonne, symboles, positions le long de la ligne. */
+    function explain(s) {
+      const [ti, tv] = s.cells[0];
+      const p = { r: Math.floor(ti / N) + 1, c: (ti % N) + 1, v: SYM(tv), o: SYM(1 - tv), n: N / 2, k: s.cells.length };
+      if (s.units?.length) {
+        const u = s.units[0];
+        p.unit = u < N ? t('tk.u.row', { n: u + 1 }) : t('tk.u.col', { n: u - N + 1 });
+        p.line = u < N ? t('tk.u.rowNoun') : t('tk.u.colNoun');
+        p.at = (i) => (u < N ? (i % N) + 1 : Math.floor(i / N) + 1);
+        p.target = p.at(ti);
+        if (s.focus) p.pos = s.focus.map(p.at).join(', ');
+        delete p.at;
+      }
+      return p;
     }
     function showHint() {
       const s = hint.step;
@@ -106,7 +132,10 @@ export default {
           action: { label: t('tk.hint.place'), run: () => { for (const [i, v] of s.cells) marks[i] = v; commit(); } },
         };
       } else {
-        message = { text: t(`tk.hint.${s.tech}`), action: { label: t('tk.hint.reveal'), run: () => askHint() } };
+        let text = t(`tk.hint.${s.tech}`, explain(s));
+        const names = [...new Set((s.prior ?? []).filter((x) => x !== s.tech))].map((x) => t(`tk.prior.${x}`));
+        if (names.length) text += ' ' + t('tk.hint.prior', { list: names.join(', ') });
+        message = { text, action: { label: t('tk.hint.reveal'), run: () => askHint() } };
       }
       render();
     }

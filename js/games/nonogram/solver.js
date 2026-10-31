@@ -274,6 +274,46 @@ export function findStep(cells, N, rows, cols, maxLevel = 4) {
   return null;
 }
 
+/** Toutes les déductions de ligne disponibles au niveau de technique le plus simple (indices). */
+export function allSteps(cells, N, rows, cols, maxLevel = 4) {
+  const out = [];
+  for (const [level, fn] of [[1, basicLine], [2, simpleLine], [3, solveLine]]) {
+    if (level > maxLevel) break;
+    for (let pass = 0; pass < 2; pass++) {
+      const isRow = pass === 0;
+      const clues = isRow ? rows : cols;
+      for (let k = 0; k < N; k++) {
+        const { f, e } = lineMasks(cells, N, isRow, k);
+        const r = fn(clues[k], N, f, e);
+        if (!r) continue;
+        const nf = r.f & ~f;
+        const ne = r.e & ~e;
+        if (!nf && !ne) continue;
+        const idxs = [];
+        const vals = [];
+        for (let i = 0; i < N; i++) {
+          const idx = isRow ? k * N + i : i * N + k;
+          if ((nf >> i) & 1) { idxs.push(idx); vals.push(1); }
+          else if ((ne >> i) & 1) { idxs.push(idx); vals.push(2); }
+        }
+        if (idxs.length) out.push({ tech: level === 1 ? 'basic' : level === 2 ? 'bounds' : 'line', level, isRow, k, cells: idxs, values: vals });
+      }
+    }
+    if (out.length) return out;
+  }
+  if (maxLevel >= 4) {
+    for (let i = 0; i < N * N && out.length < 4; i++) {
+      if (cells[i]) continue;
+      for (const v of [1, 2]) {
+        const t = cells.slice();
+        t[i] = v;
+        if (!fixpoint(t, N, rows, cols)) { out.push({ tech: 'trial', level: 4, isRow: null, k: -1, cells: [i], values: [v === 1 ? 2 : 1] }); break; }
+      }
+    }
+  }
+  return out;
+}
+
 /** Résout avec les techniques. Renvoie { solved, rating, counts, cells }. */
 export function solveWithTechniques(rows, cols, N, { maxLevel = 4, cells = null } = {}) {
   const st = cells ? Uint8Array.from(cells) : new Uint8Array(N * N);

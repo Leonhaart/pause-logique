@@ -1,7 +1,8 @@
 // Akari : interface. Appui = ampoule, appui suivant = point (« pas d'ampoule »), puis vide ; glisser = poser des points.
 import { h, svgEl } from '../../core/dom.js';
 import { History, toolButton } from '../../ui/kit.js';
-import { geoOf, newState, findStep, litCells, isSolution } from './solver.js';
+import { geoOf, newState, allSteps, litCells, isSolution } from './solver.js';
+import { planHint, manhattan } from '../../core/hint.js';
 import { puzzleFor } from './puzzle.js';
 import { consume, refillAll, stockInfo, onStock } from './pool.js';
 
@@ -101,34 +102,58 @@ export default {
         if (marks[i] === 1 && sol[i] === 1) st.cs[i] = 1;
         else if (marks[i] === 2 && sol[i] !== 1) st.cs[i] = 0;
       }
+      const last = sel >= 0 ? [row(sel), col(sel)] : null;
+      // toutes les déductions disponibles : la plus facile, et à égalité la plus proche de la dernière case touchée
+      const plan = planHint({
+        collect: () => allSteps(st, 4),
+        apply: (s) => { for (const [i, v] of s.cells) st.cs[i] = v; },
+        fresh: (s) => s.cells.filter(([i, v]) => v === 1 && marks[i] !== 1),
+        where: (s, f) => f.map(([i]) => [row(i), col(i)]),
+        last,
+      });
       let found = null;
-      const prior = [];
-      for (let guard = 0; guard < 400 && !found; guard++) {
-        const s = findStep(st, 4);
-        if (!s) break;
-        const fresh = s.cells.filter(([i, v]) => v === 1 && marks[i] !== 1);
-        if (fresh.length) found = { step: s, cells: fresh, prior: [...new Set(prior)] };
-        for (const [i, v] of s.cells) st.cs[i] = v;
-        if (!found) prior.push(s.tech);
-      }
-      if (!found) {
-        const i = g.whites.find((k) => sol[k] === 1 && marks[k] !== 1);
-        if (i == null) return;
-        found = { step: { tech: 'search', cells: [[i, 1]], focus: [i] }, cells: [[i, 1]], prior: [] };
+      if (plan) found = { step: plan.step, cells: plan.fresh, prior: plan.prior, info: explain(plan.step, plan.fresh) };
+      else {
+        let k = -1;
+        let bd = Infinity;
+        for (const x of g.whites) {
+          if (sol[x] !== 1 || marks[x] === 1) continue;
+          const dd = last ? manhattan([row(x), col(x)], last) : 0;
+          if (dd < bd) { bd = dd; k = x; }
+        }
+        if (k < 0) return;
+        found = { step: { tech: 'search', cells: [[k, 1]], focus: [k] }, cells: [[k, 1]], prior: [], info: { r: row(k) + 1, c: col(k) + 1 } };
       }
       hint = { ...found, revealed: false };
       showHint();
+    }
+    /** Paramètres concrets du texte d'indice. */
+    function explain(step, fresh) {
+      const [b] = fresh[0];
+      const p = { r: row(b) + 1, c: col(b) + 1 };
+      if (step.tech === 'full' || step.tech === 'combo') {
+        const w = step.focus[0];
+        p.wr = row(w) + 1;
+        p.wc = col(w) + 1;
+        p.n = puz.num[w];
+        p.k = fresh.length;
+      } else if (step.tech === 'only') {
+        const lit = step.focus[0];
+        p.lr = row(lit) + 1;
+        p.lc = col(lit) + 1;
+      }
+      return p;
     }
     function showHint() {
       const hn = hint;
       if (hn.revealed) {
         message = {
           text: hn.cells.length === 1 ? t('ak.hint.revealOne', { r: row(hn.cells[0][0]) + 1, c: col(hn.cells[0][0]) + 1 }) : t('ak.hint.revealMany'),
-          action: { label: t('ak.hint.place'), run: () => { for (const [i] of hn.cells) marks[i] = 1; commit(); } },
+          action: { label: t('ak.hint.place'), run: () => { for (const [i] of hn.cells) marks[i] = 1; sel = hn.cells[0][0]; commit(); } },
         };
       } else {
-        let text = t(`ak.hint.${hn.step.tech}`);
-        const names = hn.prior.map((p) => t(`ak.prior.${p}`));
+        let text = t(`ak.hint.${hn.step.tech}`, hn.info);
+        const names = [...new Set(hn.prior.filter((p) => p !== hn.step.tech).map((p) => t(`ak.prior.${p}`)))];
         if (names.length) text += ' ' + t('ak.hint.prior', { list: names.join(', ') });
         message = { text, action: { label: t('hint.reveal'), run: () => askHint() } };
       }

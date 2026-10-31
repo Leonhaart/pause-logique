@@ -142,19 +142,19 @@ function stepBasic(st) {
     for (const j of g.nbr[w]) { if (cs[j] === 1) b++; else if (cs[j] === -1) unk.push(j); }
     if (!unk.length) continue;
     const need = p.num[w] - b;
-    if (need === 0) return { tech: p.num[w] === 0 ? 'zero' : 'done', level: 1, cells: unk.map((j) => [j, 0]), focus: [w, ...unk] };
-    if (need === unk.length) return { tech: 'full', level: 1, cells: unk.map((j) => [j, 1]), focus: [w, ...unk] };
+    if (need === 0) { const _r = emitStep({ tech: p.num[w] === 0 ? 'zero' : 'done', level: 1, cells: unk.map((j) => [j, 0]), focus: [w, ...unk] }); if (_r) return _r; }
+    if (need === unk.length) { const _r = emitStep({ tech: 'full', level: 1, cells: unk.map((j) => [j, 1]), focus: [w, ...unk] }); if (_r) return _r; }
   }
   for (const i of g.whites) {
     if (cs[i] !== 1) continue;
     const out = g.view[i].filter((j) => j !== i && cs[j] === -1).map((j) => [j, 0]);
-    if (out.length) return { tech: 'lit', level: 1, cells: out, focus: [i], lines: [i] };
+    if (out.length) { const _r = emitStep({ tech: 'lit', level: 1, cells: out, focus: [i], lines: [i] }); if (_r) return _r; }
   }
   const lit = litCells(p, cs);
   for (const i of g.whites) {
     if (lit[i]) continue;
     const src = g.view[i].filter((j) => cs[j] === -1);
-    if (src.length === 1) return { tech: 'only', level: 1, cells: [[src[0], 1]], focus: [i, src[0]], lines: [i] };
+    if (src.length === 1) { const _r = emitStep({ tech: 'only', level: 1, cells: [[src[0], 1]], focus: [i, src[0]], lines: [i] }); if (_r) return _r; }
   }
   return null;
 }
@@ -196,7 +196,7 @@ function stepCombo(st) {
       if (cs[x] !== -1 || unk.includes(x) || out.some(([j]) => j === x)) continue;
       if (ok.every((c) => c.some((j) => g.view[j].includes(x)))) out.push([x, 0]);
     }
-    if (out.length) return { tech: 'combo', level: 2, cells: out, focus: [w, ...unk], lines: [] };
+    if (out.length) { const _r = emitStep({ tech: 'combo', level: 2, cells: out, focus: [w, ...unk], lines: [] }); if (_r) return _r; }
   }
   return null;
 }
@@ -219,14 +219,29 @@ function stepTrial(st, lvl) {
     for (const v of [1, 0]) {
       const t = cloneState(st);
       t.cs[i] = v;
-      if (propagate(t, lvl - 1)) return { tech: `trial${lvl - 1}`, level: lvl, cells: [[i, 1 - v]], focus: [i] };
+      if (propagate(t, lvl - 1)) { const _r = emitStep({ tech: `trial${lvl - 1}`, level: lvl, cells: [[i, 1 - v]], focus: [i] }); if (_r) return _r; }
     }
   }
   return null;
 }
 
+
+
+// --- énumération des déductions (indices) : voir js/core/hint.js ---
+let sink = null;
+const STOP = { stop: true };
+/** Pendant l'énumération, remplace « return pas » par un enregistrement et continue le balayage. */
+function emitStep(s) {
+  if (!sink) return s;
+  if (s.level > sink.max || (sink.length && s.level > sink.min)) return null;
+  sink.push(s);
+  if (s.level < sink.min) sink.min = s.level;
+  if (sink.length >= (s.level >= 3 ? 4 : 40)) throw STOP;
+  return null;
+}
+
 /** Prochaine déduction de niveau <= maxLevel, la plus simple d'abord. */
-export function findStep(st, maxLevel = 4) {
+function findStep0(st, maxLevel = 4) {
   let s = stepBasic(st);
   if (s) return s;
   if (maxLevel >= 2 && (s = stepCombo(st))) return s;
@@ -234,6 +249,34 @@ export function findStep(st, maxLevel = 4) {
   if (maxLevel >= 4 && (s = stepTrial(st, 4))) return s;
   return null;
 }
+
+export function findStep(st, maxLevel = 4) {
+  const saved = sink;
+  sink = null;
+  try {
+    return findStep0(st, maxLevel);
+  } finally {
+    sink = saved;
+  }
+}
+
+/** Toutes les déductions disponibles au niveau de technique le plus simple (indices). */
+export function allSteps(st, maxLevel = 4) {
+  sink = [];
+  sink.max = maxLevel;
+  sink.min = 99;
+  const go = (f, heavy) => { if (sink.length && heavy) return; f(); };
+  try {
+    go(() => stepBasic(st));
+    if (maxLevel >= 2) go(() => stepCombo(st));
+    if (maxLevel >= 3) go(() => stepTrial(st, 3), true);
+    if (maxLevel >= 4) go(() => stepTrial(st, 4), true);
+  }
+  catch (e) { if (e !== STOP) throw e; }
+  const r = sink; sink = null;
+  return r;
+}
+
 
 /** Résout avec les techniques ; renvoie { solved, rating, counts, grid }. */
 export function solveWithTechniques(p, { maxLevel = 4 } = {}) {

@@ -2,12 +2,13 @@
 import { h } from '../../core/dom.js';
 import { storage } from '../../core/storage.js';
 import { History, toolButton } from '../../ui/kit.js';
-import { findStep, runsOf } from './solver.js';
+import { allSteps, runsOf } from './solver.js';
+import { planHint, manhattan } from '../../core/hint.js';
 import { puzzleFor } from './puzzle.js';
 import { consume, refillAll, stockInfo, onStock } from './pool.js';
 
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
-const TECH_TEXT = { basic: 'ng.hint.basic', bounds: 'ng.hint.bounds', line: 'ng.hint.line', trial: 'ng.hint.trial' };
+const TECH_TEXT = { basic: 'ng.hint.basic', bounds: 'ng.hint.bounds', line: 'ng.hint.line', trial: 'ng.hint.trial', search: 'ng.hint.search' };
 
 export default {
   mount(container, ctx) {
@@ -169,14 +170,38 @@ export default {
         if (st[i] === 1 && sol[i]) known[i] = 1;
         else if (st[i] === 2 && !sol[i]) known[i] = 2;
       }
-      let step = findStep(known, N, rows, cols, 4);
+      const rcOf = (i) => [Math.floor(i / N), i % N];
+      const plan = planHint({
+        collect: () => allSteps(known, N, rows, cols, 4),
+        apply: (step) => { step.cells.forEach((i, j) => { known[i] = step.values[j]; }); },
+        fresh: (step) => step.cells.map((i, j) => [i, step.values[j]]).filter(([i, v]) => known[i] !== v && st[i] !== v),
+        where: (step, f) => f.map(([i]) => rcOf(i)),
+        last: focus >= 0 ? rcOf(focus) : null,
+      });
+      let step = plan ? { ...plan.step, cells: plan.fresh.map(([i]) => i), values: plan.fresh.map(([, v]) => v), prior: plan.prior } : null;
       if (!step) {
-        const i = known.findIndex((v, k) => !v && true && k >= 0);
-        if (i < 0) return;
-        step = { tech: 'trial', isRow: null, k: -1, cells: [i], values: [sol[i] ? 1 : 2] };
+        const cand = [...Array(NN).keys()].filter((k) => !known[k]);
+        if (!cand.length) return;
+        if (focus >= 0) cand.sort((x, y) => manhattan(rcOf(x), rcOf(focus)) - manhattan(rcOf(y), rcOf(focus)));
+        const i = cand[0];
+        step = { tech: 'search', isRow: null, k: -1, cells: [i], values: [sol[i] ? 1 : 2], prior: [] };
       }
       hint = { step, revealed: false };
       showHint();
+    }
+    /** Paramètres concrets : ligne/colonne, indice de la ligne, nombre de cases, case de l'essai. */
+    function explain(s) {
+      const p = { n: s.cells.length, r: Math.floor(s.cells[0] / N) + 1, c: (s.cells[0] % N) + 1 };
+      if (s.isRow !== null && s.isRow !== undefined && s.k >= 0) {
+        const clue = (s.isRow ? rows : cols)[s.k];
+        p.unit = s.isRow ? t('ng.u.row', { n: s.k + 1 }) : t('ng.u.col', { n: s.k + 1 });
+        p.clue = clue.length ? clue.join(' ') : '0';
+        p.black = s.values.filter((v) => v === 1).length;
+        p.cross = s.values.filter((v) => v === 2).length;
+      }
+      p.v = s.values[0] === 1 ? t('ng.v.black') : t('ng.v.cross');
+      p.o = s.values[0] === 1 ? t('ng.v.cross') : t('ng.v.black');
+      return p;
     }
     function showHint() {
       const s = hint.step;
@@ -186,7 +211,9 @@ export default {
           action: { label: t('ng.hint.apply'), run: () => { s.cells.forEach((idx, j) => { st[idx] = s.values[j]; }); commit(); } },
         };
       } else {
-        message = { text: t(TECH_TEXT[s.tech] ?? 'ng.hint.trial'), action: { label: t('sb.hint.reveal'), run: () => askHint() } };
+        let text = t(TECH_TEXT[s.tech] ?? 'ng.hint.trial', explain(s));
+        if (s.prior?.length) text += ' ' + t('ng.hint.prior');
+        message = { text, action: { label: t('sb.hint.reveal'), run: () => askHint() } };
       }
       render();
     }

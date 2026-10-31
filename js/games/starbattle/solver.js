@@ -184,7 +184,7 @@ function stepSingle(st) {
     let n = 0;
     let last = -1;
     for (const c of st.unitCells[u]) if (st.cs[c] === 1) { n++; last = c; }
-    if (n === 1) return { tech: 'single', level: 1, place: last, units: [u] };
+    if (n === 1) { const _r = emitStep({ tech: 'single', level: 1, place: last, units: [u] }); if (_r) return _r; }
   }
   return null;
 }
@@ -278,14 +278,29 @@ function stepTrial(st, propLevel) {
     const t = cloneState(st);
     place(t, x);
     if (propagate(t, propLevel)) {
-      return { tech: `trial${propLevel}`, level: techLevel(`trial${propLevel}`), elim: [x], units: unitsOf(st, x) };
+      { const _r = emitStep({ tech: `trial${propLevel}`, level: techLevel(`trial${propLevel}`), elim: [x], units: unitsOf(st, x) }); if (_r) return _r; }
     }
   }
   return null;
 }
 
+
+
+// --- énumération des déductions (indices) : voir js/core/hint.js ---
+let sink = null;
+const STOP = { stop: true };
+/** Pendant l'énumération, remplace « return pas » par un enregistrement et continue le balayage. */
+function emitStep(s) {
+  if (!sink) return s;
+  if (s.level > sink.max || (sink.length && s.level > sink.min)) return null;
+  sink.push(s);
+  if (s.level < sink.min) sink.min = s.level;
+  if (sink.length >= (s.level >= 3 ? 4 : 40)) throw STOP;
+  return null;
+}
+
 /** Prochaine déduction de niveau ≤ maxLevel, la plus simple d'abord. */
-export function findStep(st, maxLevel = 5, allowTrial = true) {
+function findStep0(st, maxLevel = 5, allowTrial = true) {
   let s = stepSingle(st);
   if (s) return s;
   s = stepSets(st, 1);
@@ -299,6 +314,39 @@ export function findStep(st, maxLevel = 5, allowTrial = true) {
   }
   return null;
 }
+
+export function findStep(st, maxLevel = 5, allowTrial = true) {
+  const saved = sink;
+  sink = null;
+  try {
+    return findStep0(st, maxLevel, allowTrial);
+  } finally {
+    sink = saved;
+  }
+}
+
+/** Toutes les déductions disponibles au niveau de technique le plus simple (indices). */
+export function allSteps(st, maxLevel = 5, allowTrial = true) {
+  sink = [];
+  sink.max = maxLevel;
+  sink.min = 99;
+  const go = (f, heavy) => { if (sink.length && heavy) return; f(); };
+  try {
+    go(() => stepSingle(st));
+    go(() => stepSets(st, 1));
+    if (maxLevel >= 2) go(() => stepSets(st, 2));
+    if (maxLevel >= 3 && allowTrial) go(() => stepTrial(st, 1), true);
+    if (maxLevel >= 4) go(() => stepSets(st, 3));
+    if (maxLevel >= 5) {
+      if (allowTrial) go(() => stepTrial(st, 2), true);
+      go(() => stepSets(st, 4));
+    }
+  }
+  catch (e) { if (e !== STOP) throw e; }
+  const r = sink; sink = null;
+  return r;
+}
+
 
 /** Résout avec les techniques ; renvoie { solved, rating, counts }. */
 export function solveWithTechniques(reg, N, { maxLevel = 5 } = {}) {

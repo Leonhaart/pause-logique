@@ -129,7 +129,7 @@ function stepNaked(st) {
       if (ri < 0) continue;
       for (const j of g.runs[ri].cells) if (j !== i && cand[j] & b && !changes.some(([x]) => x === j)) { changes.push([j, cand[j] & ~b]); if (!runsHit.includes(ri)) runsHit.push(ri); }
     }
-    if (changes.length) return { tech: 'naked', level: 1, changes, focus: [i], runs: runsHit };
+    if (changes.length) { const _r = emitStep({ tech: 'naked', level: 1, changes, focus: [i], runs: runsHit }); if (_r) return _r; }
   }
   return null;
 }
@@ -144,7 +144,7 @@ function stepCombo(st) {
     for (const m of combosOf(run.cells.length, run.sum)) if ((m & fixed) === fixed) allowed |= m;
     const changes = [];
     for (const i of run.cells) if (cand[i] & ~allowed) changes.push([i, cand[i] & allowed]);
-    if (changes.length) return { tech: 'combo', level: 1, changes, focus: changes.map(([i]) => i), runs: [ri] };
+    if (changes.length) { const _r = emitStep({ tech: 'combo', level: 1, changes, focus: changes.map(([i]) => i), runs: [ri] }); if (_r) return _r; }
   }
   return null;
 }
@@ -200,7 +200,7 @@ function stepRun(st) {
     const sup = runSupport(run, cand);
     const changes = [];
     run.cells.forEach((i, x) => { if (cand[i] & ~sup[x]) changes.push([i, cand[i] & sup[x]]); });
-    if (changes.length) return { tech: 'run', level: 2, changes, focus: changes.map(([i]) => i), runs: [ri] };
+    if (changes.length) { const _r = emitStep({ tech: 'run', level: 2, changes, focus: changes.map(([i]) => i), runs: [ri] }); if (_r) return _r; }
   }
   return null;
 }
@@ -297,14 +297,29 @@ function stepTrial(st, lvl) {
       if (!(cand[i] & bit(d))) continue;
       const t = cloneState(st);
       t.cand[i] = bit(d);
-      if (propagate(t, lvl - 1)) return { tech: `trial${lvl - 1}`, level: lvl, changes: [[i, cand[i] & ~bit(d)]], focus: [i], runs: g.runOf[i].filter((r) => r >= 0) };
+      if (propagate(t, lvl - 1)) { const _r = emitStep({ tech: `trial${lvl - 1}`, level: lvl, changes: [[i, cand[i] & ~bit(d)]], focus: [i], runs: g.runOf[i].filter((r) => r >= 0) }); if (_r) return _r; }
     }
   }
   return null;
 }
 
+
+
+// --- énumération des déductions (indices) : voir js/core/hint.js ---
+let sink = null;
+const STOP = { stop: true };
+/** Pendant l'énumération, remplace « return pas » par un enregistrement et continue le balayage. */
+function emitStep(s) {
+  if (!sink) return s;
+  if (s.level > sink.max || (sink.length && s.level > sink.min)) return null;
+  sink.push(s);
+  if (s.level < sink.min) sink.min = s.level;
+  if (sink.length >= (s.level >= 3 ? 4 : 40)) throw STOP;
+  return null;
+}
+
 /** Prochaine déduction de niveau <= maxLevel, la plus simple d'abord. */
-export function findStep(st, maxLevel = 4) {
+function findStep0(st, maxLevel = 4) {
   let s = stepNaked(st) || stepCombo(st);
   if (s) return s;
   if (maxLevel >= 2 && (s = stepRun(st))) return s;
@@ -312,6 +327,35 @@ export function findStep(st, maxLevel = 4) {
   if (maxLevel >= 4 && (s = stepTrial(st, 4))) return s;
   return null;
 }
+
+export function findStep(st, maxLevel = 4) {
+  const saved = sink;
+  sink = null;
+  try {
+    return findStep0(st, maxLevel);
+  } finally {
+    sink = saved;
+  }
+}
+
+/** Toutes les déductions disponibles au niveau de technique le plus simple (indices). */
+export function allSteps(st, maxLevel = 4) {
+  sink = [];
+  sink.max = maxLevel;
+  sink.min = 99;
+  const go = (f, heavy) => { if (sink.length && heavy) return; f(); };
+  try {
+    go(() => stepNaked(st));
+    go(() => stepCombo(st));
+    if (maxLevel >= 2) go(() => stepRun(st));
+    if (maxLevel >= 3) go(() => stepTrial(st, 3), true);
+    if (maxLevel >= 4) go(() => stepTrial(st, 4), true);
+  }
+  catch (e) { if (e !== STOP) throw e; }
+  const r = sink; sink = null;
+  return r;
+}
+
 
 export const valuesOf = (st) => Int8Array.from(st.cand, (m) => (single(m) ? digitOf(m) : 0));
 

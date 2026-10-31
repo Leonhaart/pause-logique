@@ -1,7 +1,7 @@
 // Futoshiki : interface. Chiffres 1..N une fois par ligne et colonne, signes < > entre cases voisines.
 import { h } from '../../core/dom.js';
 import { History, toolButton } from '../../ui/kit.js';
-import { autoCandidates, nextPlacement } from './solver.js';
+import { autoCandidates, planPlacement } from './solver.js';
 import { puzzleFor } from './puzzle.js';
 import { consume, refillAll, stockInfo, onStock } from './pool.js';
 
@@ -160,7 +160,7 @@ export default {
       if (hint && !hint.revealed) { hint.revealed = true; return showHint(); }
       // On ne retient que les chiffres justes du joueur.
       const g = Int8Array.from(vals, (v, i) => (given(i) || v === sol[i] ? v : 0));
-      let found = nextPlacement(puz, g);
+      let found = planPlacement(puz, g, sel >= 0 ? [row(sel), col(sel)] : null);
       if (!found) {
         const i = [...Array(NN).keys()].find((k) => g[k] === 0);
         if (i == null) return;
@@ -170,6 +170,32 @@ export default {
       sel = found.cell;
       showHint();
     }
+    /** Paramètres concrets du texte : cases (ligne/colonne), chiffres, ligne ou colonne concernée. */
+    function explain(hn) {
+      const s = hn.step;
+      const rcs = (cs) => cs.map((i) => `L${row(i) + 1}C${col(i) + 1}`).join(', ');
+      const p = { r: row(hn.cell) + 1, c: col(hn.cell) + 1, d: hn.digit, cells: rcs(s.focus ?? []), k: (s.focus ?? []).length };
+      if (s.units?.length) {
+        const u = s.units[0];
+        p.unit = u < N ? t('fu.u.row', { n: u + 1 }) : t('fu.u.col', { n: u - N + 1 });
+      }
+      if (s.tech === 'single') {
+        const at = s.focus[0];
+        p.d = Math.round(Math.log2(s.set[0][1])) + 1;
+        p.r = row(at) + 1;
+        p.c = col(at) + 1;
+        p.where = s.units[0] < N ? t('fu.at.col', { n: col(at) + 1 }) : t('fu.at.row', { n: row(at) + 1 });
+      }
+      if (s.tech === 'bound') {
+        const [a, b] = s.focus;
+        p.r1 = row(a) + 1; p.c1 = col(a) + 1; p.r2 = row(b) + 1; p.c2 = col(b) + 1;
+      }
+      if (s.tech === 'trial') {
+        const [x] = s.focus;
+        p.rx = row(x) + 1; p.cx = col(x) + 1; p.t = s.digit;
+      }
+      return p;
+    }
     function showHint() {
       const hn = hint;
       if (hn.revealed) {
@@ -178,7 +204,8 @@ export default {
           action: { label: t('fu.hint.place', { d: hn.digit }), run: () => setValue(hn.cell, hn.digit) },
         };
       } else {
-        let text = t(`fu.hint.${hn.step.tech}`);
+        let text = t(`fu.hint.${hn.step.tech}`, explain(hn));
+        if (hn.step.tech === 'single' && hn.cell !== hn.step.focus[0]) text += ' ' + t('fu.hint.then', { r: row(hn.cell) + 1, c: col(hn.cell) + 1 });
         const names = [...new Set(hn.prior)].map((p) => t(`fu.prior.${p}`));
         if (names.length) text += ' ' + t('fu.hint.prior', { list: names.join(', ') });
         message = { text, action: { label: t('hint.reveal'), run: () => askHint() } };

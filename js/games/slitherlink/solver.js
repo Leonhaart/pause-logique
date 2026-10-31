@@ -286,9 +286,9 @@ function stepCells(st) {
     const [L, U] = cellCount(st, c);
     if (!U) continue;
     if (L === cl) {
-      return { tech: cl === 0 ? 'zero' : 'done', level: 1, cells: [c], changes: g.cellEdges[c].filter((k) => e[k] === 0).map((k) => [k, 2]) };
+      { const _r = emitStep({ tech: cl === 0 ? 'zero' : 'done', level: 1, cells: [c], changes: g.cellEdges[c].filter((k) => e[k] === 0).map((k) => [k, 2]) }); if (_r) return _r; }
     }
-    if (L + U === cl) return { tech: 'need', level: 1, cells: [c], changes: g.cellEdges[c].filter((k) => e[k] === 0).map((k) => [k, 1]) };
+    if (L + U === cl) { const _r = emitStep({ tech: 'need', level: 1, cells: [c], changes: g.cellEdges[c].filter((k) => e[k] === 0).map((k) => [k, 1]) }); if (_r) return _r; }
   }
   return null;
 }
@@ -297,9 +297,9 @@ function stepVerts(st) {
   for (let v = 0; v < g.V; v++) {
     const [L, U] = vertCount(st, v);
     const unk = g.vertEdges[v].filter((k) => e[k] === 0);
-    if (L === 2 && U) return { tech: 'deg2', level: 1, verts: [v], changes: unk.map((k) => [k, 2]) };
-    if (L === 1 && U === 1) return { tech: 'extend', level: 1, verts: [v], changes: unk.map((k) => [k, 1]) };
-    if (L === 0 && U === 1) return { tech: 'end', level: 1, verts: [v], changes: unk.map((k) => [k, 2]) };
+    if (L === 2 && U) { const _r = emitStep({ tech: 'deg2', level: 1, verts: [v], changes: unk.map((k) => [k, 2]) }); if (_r) return _r; }
+    if (L === 1 && U === 1) { const _r = emitStep({ tech: 'extend', level: 1, verts: [v], changes: unk.map((k) => [k, 1]) }); if (_r) return _r; }
+    if (L === 0 && U === 1) { const _r = emitStep({ tech: 'end', level: 1, verts: [v], changes: unk.map((k) => [k, 2]) }); if (_r) return _r; }
   }
   return null;
 }
@@ -308,7 +308,7 @@ function stepLoop(st) {
   if (lr.bad || !lr.cross.length) return null;
   const g = st.g;
   const k0 = lr.cross[0];
-  return { tech: lr.closed ? 'closed' : 'loop', level: 1, verts: lr.closed ? [] : [g.edgeV[k0 * 2], g.edgeV[k0 * 2 + 1]], edges: [k0], changes: lr.cross.map((k) => [k, 2]) };
+  { const _r = emitStep({ tech: lr.closed ? 'closed' : 'loop', level: 1, verts: lr.closed ? [] : [g.edgeV[k0 * 2], g.edgeV[k0 * 2 + 1]], edges: [k0], changes: lr.cross.map((k) => [k, 2]) }); if (_r) return _r; }
 }
 function stepCombo(st) {
   const { p, g } = st;
@@ -321,7 +321,7 @@ function stepCombo(st) {
       const v0 = res[0].get(k);
       if (res.every((m) => m.get(k) === v0)) changes.push([k, v0]);
     }
-    if (changes.length) return { tech: 'combo', level: 2, cells: [c], changes };
+    if (changes.length) { const _r = emitStep({ tech: 'combo', level: 2, cells: [c], changes }); if (_r) return _r; }
   }
   return null;
 }
@@ -332,20 +332,64 @@ function stepTrial(st) {
     for (const v of [1, 2]) {
       const t = clone(st);
       t.e[k] = v;
-      if (fastProp(t, true)) return { tech: 'trial', level: 3, edges: [k], changes: [[k, 3 - v]] };
+      if (fastProp(t, true)) { const _r = emitStep({ tech: 'trial', level: 3, edges: [k], changes: [[k, 3 - v]] }); if (_r) return _r; }
     }
   }
   return null;
 }
 
+
+
+// --- énumération des déductions (indices) : voir js/core/hint.js ---
+let sink = null;
+const STOP = { stop: true };
+/** Pendant l'énumération, remplace « return pas » par un enregistrement et continue le balayage. */
+function emitStep(s) {
+  if (!sink) return s;
+  if (s.level > sink.max || (sink.length && s.level > sink.min)) return null;
+  sink.push(s);
+  if (s.level < sink.min) sink.min = s.level;
+  if (sink.length >= (s.level >= 3 ? 4 : 40)) throw STOP;
+  return null;
+}
+
 /** Prochaine déduction de niveau <= maxLevel, la plus simple d'abord. */
-export function findStep(st, maxLevel = 3) {
+function findStep0(st, maxLevel = 3) {
   let s = stepCells(st) || stepVerts(st) || stepLoop(st);
   if (s) return s;
   if (maxLevel >= 2 && (s = stepCombo(st))) return s;
   if (maxLevel >= 3 && (s = stepTrial(st))) return s;
   return null;
 }
+
+export function findStep(st, maxLevel = 3) {
+  const saved = sink;
+  sink = null;
+  try {
+    return findStep0(st, maxLevel);
+  } finally {
+    sink = saved;
+  }
+}
+
+/** Toutes les déductions disponibles au niveau de technique le plus simple (indices). */
+export function allSteps(st, maxLevel = 3) {
+  sink = [];
+  sink.max = maxLevel;
+  sink.min = 99;
+  const go = (f, heavy) => { if (sink.length && heavy) return; f(); };
+  try {
+    go(() => stepCells(st));
+    go(() => stepVerts(st));
+    go(() => stepLoop(st));
+    if (maxLevel >= 2) go(() => stepCombo(st));
+    if (maxLevel >= 3) go(() => stepTrial(st), true);
+  }
+  catch (e) { if (e !== STOP) throw e; }
+  const r = sink; sink = null;
+  return r;
+}
+
 
 export const apply = (st, s) => { for (const [k, v] of s.changes) st.e[k] = v; };
 

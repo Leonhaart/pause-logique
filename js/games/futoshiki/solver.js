@@ -8,6 +8,7 @@
 // pair 3 (paires), triple 4 (triplets), trial 5 (essai logique).
 
 const bit = (d) => 1 << (d - 1);
+import { planHint, manhattan } from '../../core/hint.js';
 const pop = (m) => { let n = 0; while (m) { m &= m - 1; n++; } return n; };
 const lowBit = (m) => m & -m;
 const bitLen = (m) => 32 - Math.clz32(m); // plus grand chiffre = bitLen(m)
@@ -106,7 +107,7 @@ function stepHidden(st) {
       let n = 0;
       let at = -1;
       for (const i of lines[u]) if (st.cand[i] & bit(d)) { n++; at = i; }
-      if (n === 1 && st.cand[at] !== bit(d)) return { tech: 'single', level: 1, set: [[at, bit(d)]], units: [u], focus: [at] };
+      if (n === 1 && st.cand[at] !== bit(d)) { const _r = emitStep({ tech: 'single', level: 1, set: [[at, bit(d)]], units: [u], focus: [at] }); if (_r) return _r; }
     }
   }
   return null;
@@ -119,10 +120,10 @@ function stepBound(st) {
     for (const j of gt[i]) {
       const hi = bitLen(cand[j]);
       const keep = cand[i] & ((1 << (hi - 1)) - 1);
-      if (keep !== cand[i]) return { tech: 'bound', level: 2, set: [[i, keep]], units: [], focus: [i, j] };
+      if (keep !== cand[i]) { const _r = emitStep({ tech: 'bound', level: 2, set: [[i, keep]], units: [], focus: [i, j] }); if (_r) return _r; }
       const lo = lowDigit(cand[i]);
       const keepJ = cand[j] & ~((1 << lo) - 1);
-      if (keepJ !== cand[j]) return { tech: 'bound', level: 2, set: [[j, keepJ]], units: [], focus: [i, j] };
+      if (keepJ !== cand[j]) { const _r = emitStep({ tech: 'bound', level: 2, set: [[j, keepJ]], units: [], focus: [i, j] }); if (_r) return _r; }
     }
   }
   return null;
@@ -148,7 +149,7 @@ function stepSubset(st, k) {
       if (pop(union) !== k || cs.some((i) => pop(st.cand[i]) === 1)) continue;
       const set = [];
       for (const j of line) if (!cs.includes(j) && (st.cand[j] & union)) set.push([j, st.cand[j] & ~union]);
-      if (set.length) return { tech, level, set, units: [u], focus: cs };
+      if (set.length) { const _r = emitStep({ tech, level, set, units: [u], focus: cs }); if (_r) return _r; }
     }
     // cachés : k chiffres dont les places tiennent dans k cases
     const digits = [];
@@ -164,7 +165,7 @@ function stepSubset(st, k) {
       for (const d of ds) dm |= bit(d);
       const set = [];
       for (const i of cellsMask) if (st.cand[i] & ~dm) set.push([i, st.cand[i] & dm]);
-      if (set.length) return { tech, level, set, units: [u], focus: [...cellsMask] };
+      if (set.length) { const _r = emitStep({ tech, level, set, units: [u], focus: [...cellsMask] }); if (_r) return _r; }
     }
   }
   return null;
@@ -192,14 +193,29 @@ function stepTrial(st) {
       if (!(st.cand[i] & bit(d))) continue;
       const t = cloneState(st);
       t.cand[i] = bit(d);
-      if (propagate(t, 4)) return { tech: 'trial', level: 5, set: [[i, st.cand[i] & ~bit(d)]], units: [], focus: [i] };
+      if (propagate(t, 4)) { const _r = emitStep({ tech: 'trial', level: 5, digit: d, set: [[i, st.cand[i] & ~bit(d)]], units: [], focus: [i] }); if (_r) return _r; }
     }
   }
   return null;
 }
 
+
+
+// --- énumération des déductions (indices) : voir js/core/hint.js ---
+let sink = null;
+const STOP = { stop: true };
+/** Pendant l'énumération, remplace « return pas » par un enregistrement et continue le balayage. */
+function emitStep(s) {
+  if (!sink) return s;
+  if (s.level > sink.max || (sink.length && s.level > sink.min)) return null;
+  sink.push(s);
+  if (s.level < sink.min) sink.min = s.level;
+  if (sink.length >= (s.level >= 3 ? 4 : 40)) throw STOP;
+  return null;
+}
+
 /** Prochaine déduction de niveau <= maxLevel, la plus simple d'abord. */
-export function findStep(st, maxLevel = 5, allowTrial = true) {
+function findStep0(st, maxLevel = 5, allowTrial = true) {
   let s = stepHidden(st);
   if (s) return s;
   if (maxLevel >= 2 && (s = stepBound(st))) return s;
@@ -207,6 +223,77 @@ export function findStep(st, maxLevel = 5, allowTrial = true) {
   if (maxLevel >= 4 && (s = stepSubset(st, 3))) return s;
   if (maxLevel >= 5 && allowTrial && (s = stepTrial(st))) return s;
   return null;
+}
+
+export function findStep(st, maxLevel = 5, allowTrial = true) {
+  const saved = sink;
+  sink = null;
+  try {
+    return findStep0(st, maxLevel, allowTrial);
+  } finally {
+    sink = saved;
+  }
+}
+
+/** Toutes les déductions disponibles au niveau de technique le plus simple (indices). */
+export function allSteps(st, maxLevel = 5, allowTrial = true) {
+  sink = [];
+  sink.max = maxLevel;
+  sink.min = 99;
+  const go = (f, heavy) => { if (sink.length && heavy) return; f(); };
+  try {
+    go(() => stepHidden(st));
+    if (maxLevel >= 2) go(() => stepBound(st));
+    if (maxLevel >= 3) go(() => stepSubset(st, 2));
+    if (maxLevel >= 4) go(() => stepSubset(st, 3));
+    if (maxLevel >= 5 && allowTrial) go(() => stepTrial(st), true);
+  }
+  catch (e) { if (e !== STOP) throw e; }
+  const r = sink; sink = null;
+  return r;
+}
+
+
+/**
+ * Prochain placement pour l'indice : le plus facile, et à égalité le plus proche de `last` ([ligne, colonne]).
+ * Renvoie { cell, digit, step, prior } (step.tech 'naked' si un seul chiffre reste dans la case) ou null.
+ */
+export function planPlacement(p, grid, last = null, rnd = Math.random) {
+  const N = p.N;
+  const st = newState({ N, giv: Int8Array.from(grid), rel: p.rel });
+  if (settle(st)) return null;
+  const rc = (i) => [Math.floor(i / N), i % N];
+  const naked = [];
+  for (let i = 0; i < st.cand.length; i++) if (pop(st.cand[i]) === 1 && !grid[i]) naked.push(i);
+  if (naked.length) {
+    let best = naked[Math.floor(rnd() * naked.length)];
+    if (last) best = naked.reduce((a, b) => (manhattan(rc(b), last) < manhattan(rc(a), last) ? b : a));
+    return { cell: best, digit: lowDigit(st.cand[best]), step: { tech: 'naked', level: 0, focus: [best], units: [] }, prior: [] };
+  }
+  const newly = (s) => {
+    const t = { ...st, cand: st.cand.slice() };
+    applyStep(t, s);
+    if (settle(t)) return [];
+    const out = [];
+    for (let i = 0; i < t.cand.length; i++) if (pop(t.cand[i]) === 1 && pop(st.cand[i]) > 1) out.push(i);
+    return out;
+  };
+  const plan = planHint({
+    collect: () => allSteps(st, 5),
+    apply: (s) => { applyStep(st, s); settle(st); },
+    fresh: (s) => newly(s),
+    where: (s, f) => f.map(rc),
+    last,
+    rnd,
+  });
+  if (!plan) return null;
+  const own = new Set(plan.step.tech === 'single' ? plan.step.focus : []);
+  const cells = plan.fresh.slice().sort((a, b) => (own.has(b) - own.has(a)) || (last ? manhattan(rc(a), last) - manhattan(rc(b), last) : 0));
+  const cell = cells[0];
+  const t = { ...st, cand: st.cand.slice() };
+  applyStep(t, plan.step);
+  settle(t);
+  return { cell, digit: lowDigit(t.cand[cell]), step: plan.step, prior: plan.prior };
 }
 
 export const stateSettle = settle;

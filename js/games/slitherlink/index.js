@@ -1,7 +1,8 @@
 // Slitherlink : interface. Appui sur un côté : trait, croix, vide. Glisser pour tracer plusieurs côtés.
 import { h, svgEl } from '../../core/dom.js';
 import { History, toolButton } from '../../ui/kit.js';
-import { geoOf, newState, findStep, isSolution, isLoop } from './solver.js';
+import { geoOf, newState, allSteps, isSolution, isLoop } from './solver.js';
+import { planHint, manhattan } from '../../core/hint.js';
 import { puzzleFor } from './puzzle.js';
 import { consume, refillAll, stockInfo, onStock } from './pool.js';
 
@@ -29,6 +30,7 @@ export default {
     let hint = null; // { step, edges:[[k,v]], prior, revealed }
     let message = null;
     let finished = false;
+    let lastEdge = -1; // dernier côté touché par le joueur
 
     // --- géométrie des arêtes -------------------------------------------------
     const seg = (k) => {
@@ -140,33 +142,78 @@ export default {
         if (marks[k] === 1 && sol[k] === 1) st.e[k] = 1;
         else if (marks[k] === 2 && sol[k] !== 1) st.e[k] = 2;
       }
+      const mid = (k) => { const [x1, y1, x2, y2] = seg(k); return [(y1 + y2) / 2, (x1 + x2) / 2]; };
+      const last = lastEdge >= 0 ? mid(lastEdge) : null;
+      // toutes les déductions disponibles : la plus facile, et à égalité la plus proche du dernier côté touché
+      const plan = planHint({
+        collect: () => allSteps(st, 3),
+        apply: (s) => { for (const [k, v] of s.changes) st.e[k] = v; },
+        fresh: (s) => s.changes.filter(([k, v]) => marks[k] !== v),
+        where: (s, f) => f.map(([k]) => mid(k)),
+        last,
+      });
       let found = null;
-      const prior = [];
-      for (let guard = 0; guard < 500 && !found; guard++) {
-        const s = findStep(st, 3);
-        if (!s) break;
-        const fresh = s.changes.filter(([k, v]) => marks[k] !== v);
-        for (const [k, v] of s.changes) st.e[k] = v;
-        if (fresh.length) found = { step: s, edges: fresh, prior: [...new Set(prior)] };
-        else prior.push(s.tech);
-      }
-      if (!found) {
-        const k = sol.findIndex((v, x) => (v === 1 ? marks[x] !== 1 : marks[x] === 1));
+      if (plan) found = { step: plan.step, edges: plan.fresh, prior: plan.prior, info: explain(plan.step, plan.fresh, st) };
+      else {
+        let k = -1;
+        let bd = Infinity;
+        for (let x = 0; x < E; x++) {
+          if (!(sol[x] === 1 ? marks[x] !== 1 : marks[x] === 1)) continue;
+          const dd = last ? manhattan(mid(x), last) : 0;
+          if (dd < bd) { bd = dd; k = x; }
+        }
         if (k < 0) return;
-        found = { step: { tech: 'search', changes: [[k, sol[k] === 1 ? 1 : 2]] }, edges: [[k, sol[k] === 1 ? 1 : 2]], prior: [] };
+        found = { step: { tech: 'search', changes: [[k, sol[k] === 1 ? 1 : 2]] }, edges: [[k, sol[k] === 1 ? 1 : 2]], prior: [], info: {} };
       }
       hint = { ...found, revealed: false };
       showHint();
+    }
+    /** « au-dessus de la case ligne 3, colonne 4 » : place concrète d'un côté. */
+    function sideOf(k) {
+      if (k < HN) {
+        const r = Math.floor(k / N);
+        const c = k % N;
+        return r < N ? t('sl.side.top', { r: r + 1, c: c + 1 }) : t('sl.side.bottom', { r, c: c + 1 });
+      }
+      const q = k - HN;
+      const r = Math.floor(q / (N + 1));
+      const c = q % (N + 1);
+      return c < N ? t('sl.side.left', { r: r + 1, c: c + 1 }) : t('sl.side.right', { r: r + 1, c });
+    }
+    const vertName = (v) => t('sl.vert', { r: Math.floor(v / (N + 1)) + 1, c: (v % (N + 1)) + 1 });
+    /** Paramètres concrets du texte d'indice. */
+    function explain(step, fresh, st) {
+      const p = { side: sideOf(fresh[0][0]) };
+      const cell = step.cells?.[0];
+      if (cell != null) {
+        p.r = Math.floor(cell / N) + 1;
+        p.c = (cell % N) + 1;
+        p.n = puz.clue[cell];
+        let lines = 0;
+        let free = 0;
+        for (const k of g.cellEdges[cell]) { if (st.e[k] === 1) lines++; else if (st.e[k] === 0) free++; }
+        p.lines = lines;
+        p.free = free;
+        p.missing = p.n - lines;
+      }
+      if (step.verts?.length === 1) p.v = vertName(step.verts[0]);
+      if (step.tech === 'loop') { p.v1 = vertName(step.verts[0]); p.v2 = vertName(step.verts[1]); }
+      if (step.tech === 'trial') {
+        p.edge = sideOf(step.edges[0]);
+        p.hyp = t(step.changes[0][1] === 1 ? 'sl.what.crossA' : 'sl.what.lineA');
+        p.then = t(step.changes[0][1] === 1 ? 'sl.what.line' : 'sl.what.cross');
+      }
+      return p;
     }
     function showHint() {
       const hn = hint;
       if (hn.revealed) {
         message = {
-          text: hn.edges.length === 1 ? t('sl.hint.revealOne', { what: t(hn.edges[0][1] === 1 ? 'sl.what.line' : 'sl.what.cross') }) : t('sl.hint.revealMany'),
-          action: { label: t('sl.hint.place'), run: () => { for (const [k, v] of hn.edges) marks[k] = v; commit(); } },
+          text: hn.edges.length === 1 ? t('sl.hint.revealOne', { side: sideOf(hn.edges[0][0]), what: t(hn.edges[0][1] === 1 ? 'sl.what.line' : 'sl.what.cross') }) : t('sl.hint.revealMany'),
+          action: { label: t('sl.hint.place'), run: () => { for (const [k, v] of hn.edges) marks[k] = v; lastEdge = hn.edges[hn.edges.length - 1][0]; commit(); } },
         };
       } else {
-        let text = t(`sl.hint.${hn.step.tech}`);
+        let text = t(`sl.hint.${hn.step.tech}`, hn.info);
         const names = [...new Set(hn.prior.filter((p) => p !== hn.step.tech).map((p) => t(`sl.prior.${p}`)))];
         if (names.length) text += ' ' + t('sl.hint.prior', { list: names.join(', ') });
         message = { text, action: { label: t('hint.reveal'), run: () => askHint() } };
@@ -200,6 +247,7 @@ export default {
       const to = (from + 1) % 3;
       drag = { from, to, last: k, changed: false, moved: false };
       marks[k] = to;
+      lastEdge = k;
       drag.changed = true;
       render();
     });
@@ -210,7 +258,7 @@ export default {
       drag.last = k;
       drag.moved = true;
       // on prolonge le geste : trait ou croix posés sur les côtés vides, effacement des côtés de même type
-      if (drag.to !== 0 && marks[k] === 0) { marks[k] = drag.to; drag.changed = true; }
+      if (drag.to !== 0 && marks[k] === 0) { marks[k] = drag.to; drag.changed = true; lastEdge = k; }
       else if (drag.to === 0 && marks[k] === drag.from) { marks[k] = 0; drag.changed = true; }
       render();
     });

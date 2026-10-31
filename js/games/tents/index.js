@@ -3,7 +3,8 @@
 import { h, svgEl } from '../../core/dom.js';
 import { storage } from '../../core/storage.js';
 import { History, toolButton } from '../../ui/kit.js';
-import { geo, newState, findStep } from './solver.js';
+import { geo, newState, allSteps } from './solver.js';
+import { planHint, manhattan } from '../../core/hint.js';
 import { puzzleFor } from './puzzle.js';
 import { consume, refillAll, stockInfo, onStock } from './pool.js';
 
@@ -147,23 +148,40 @@ export default {
         if (marks[i] === 1 && isTent(i)) st.cs[i] = 1;
         else if (marks[i] === 2 && !isTent(i)) st.cs[i] = 0;
       }
-      let found = null;
-      const prior = [];
-      for (let guard = 0; guard < 400 && !found; guard++) {
-        const s = findStep(st, 5);
-        if (!s) break;
-        const fresh = s.cells.filter(([i, v]) => v === 1 && marks[i] !== 1);
-        if (fresh.length) found = { step: s, cells: fresh, prior: [...new Set(prior)] };
-        for (const [i, v] of s.cells) st.cs[i] = v;
-        if (!found) prior.push(s.tech);
-      }
+      const rcOf = (i) => [row(i), col(i)];
+      const plan = planHint({
+        collect: () => allSteps(st, 5),
+        apply: (step) => { if (!step.contra) for (const [i, v] of step.cells) st.cs[i] = v; },
+        fresh: (step) => (step.contra ? [] : step.cells.filter(([i, v]) => v === 1 && marks[i] !== 1)),
+        where: (step, f) => f.map(([i]) => rcOf(i)),
+        last: sel >= 0 ? rcOf(sel) : null,
+      });
+      let found = plan ? { step: plan.step, cells: plan.fresh, prior: plan.prior } : null;
       if (!found) {
-        const i = [...Array(NN).keys()].find((k) => isTent(k) && marks[k] !== 1);
-        if (i == null) return;
-        found = { step: { tech: 'search', cells: [[i, 1]], units: [], focus: [i] }, cells: [[i, 1]], prior: [] };
+        const cand = [...Array(NN).keys()].filter((k) => isTent(k) && marks[k] !== 1);
+        if (!cand.length) return;
+        if (sel >= 0) cand.sort((x, y) => manhattan(rcOf(x), rcOf(sel)) - manhattan(rcOf(y), rcOf(sel)));
+        found = { step: { tech: 'search', cells: [[cand[0], 1]], units: [], focus: [cand[0]] }, cells: [[cand[0], 1]], prior: [] };
       }
       hint = { ...found, revealed: false };
       showHint();
+    }
+    /** Paramètres concrets du texte : ligne/colonne, arbre, case de la tente. */
+    function explain(hn) {
+      const s = hn.step;
+      const [ti] = hn.cells[0];
+      const p = { r: row(ti) + 1, c: col(ti) + 1, n: s.cells.length };
+      if (s.units?.length) {
+        const u = s.units[0];
+        p.unit = u < N ? t('te.u.row', { n: u + 1 }) : t('te.u.col', { n: u - N + 1 });
+        p.left = u < N ? puz.rows[u] : puz.cols[u - N];
+      }
+      if (s.tech === 'single') {
+        const tr = s.focus[0];
+        p.tr = row(tr) + 1;
+        p.tc = col(tr) + 1;
+      }
+      return p;
     }
     function showHint() {
       const hn = hint;
@@ -173,7 +191,7 @@ export default {
           action: { label: t('te.hint.place'), run: () => { for (const [i] of hn.cells) marks[i] = 1; commit(); } },
         };
       } else {
-        let text = t(`te.hint.${hn.step.tech}`);
+        let text = t(`te.hint.${hn.step.tech}`, explain(hn));
         const names = hn.prior.map((p) => t(`te.prior.${p}`));
         if (names.length) text += ' ' + t('te.hint.prior', { list: names.join(', ') });
         message = { text, action: { label: t('hint.reveal'), run: () => askHint() } };

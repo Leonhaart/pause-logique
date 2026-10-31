@@ -176,7 +176,7 @@ const elimFrom = (st, cells, mask) => {
 function nakedSingle(st) {
   for (let i = 0; i < 81; i++) {
     if (st.g[i] === 0 && popcnt(st.c[i]) === 1) {
-      return { tech: 'nakedSingle', level: 1, place: { i, d: digitOf(st.c[i]) }, cells: [i] };
+      { const _r = emitStep({ tech: 'nakedSingle', level: 1, place: { i, d: digitOf(st.c[i]) }, cells: [i] }); if (_r) return _r; }
     }
   }
   return null;
@@ -194,7 +194,7 @@ function hiddenSingle(st) {
           n++;
         }
       }
-      if (n === 1) return { tech: 'hiddenSingle', level: 1, place: { i: found, d }, unit: u, cells: [found] };
+      if (n === 1) { const _r = emitStep({ tech: 'hiddenSingle', level: 1, place: { i: found, d }, unit: u, cells: [found] }); if (_r) return _r; }
     }
   }
   return null;
@@ -213,7 +213,7 @@ function lockedCandidates(st) {
       for (const [ok, u] of [[sameRow, ROW[cells[0]]], [sameCol, 9 + COL[cells[0]]]]) {
         if (!ok) continue;
         const elim = elimFrom(st, UNITS[u].filter((i) => BOX[i] !== k), b);
-        if (elim.length) return { tech: 'pointing', level: 2, elim, digit: d, unit: 18 + k, cells };
+        if (elim.length) { const _r = emitStep({ tech: 'pointing', level: 2, elim, digit: d, unit: 18 + k, cells }); if (_r) return _r; }
       }
     }
   }
@@ -225,7 +225,7 @@ function lockedCandidates(st) {
       if (cells.length < 2) continue;
       if (!cells.every((i) => BOX[i] === BOX[cells[0]])) continue;
       const elim = elimFrom(st, UNITS[18 + BOX[cells[0]]].filter((i) => !UNITS[u].includes(i)), b);
-      if (elim.length) return { tech: 'claiming', level: 2, elim, digit: d, unit: u, cells };
+      if (elim.length) { const _r = emitStep({ tech: 'claiming', level: 2, elim, digit: d, unit: u, cells }); if (_r) return _r; }
     }
   }
   return null;
@@ -255,7 +255,7 @@ function nakedSubset(st, k) {
       const union = set.reduce((m, i) => m | st.c[i], 0);
       if (popcnt(union) !== k) continue;
       const elim = elimFrom(st, UNITS[u].filter((i) => !set.includes(i)), union);
-      if (elim.length) return { tech, level: 2, elim, unit: u, cells: set, mask: union };
+      if (elim.length) { const _r = emitStep({ tech, level: 2, elim, unit: u, cells: set, mask: union }); if (_r) return _r; }
     }
   }
   return null;
@@ -281,7 +281,7 @@ function hiddenSubset(st, k) {
       const cells = UNITS[u].filter((_, x) => union & (1 << x));
       const elim = [];
       for (const i of cells) if (st.c[i] & ~digitsMask) elim.push({ i, mask: st.c[i] & ~digitsMask });
-      if (elim.length) return { tech, level: 2, elim, unit: u, cells, mask: digitsMask };
+      if (elim.length) { const _r = emitStep({ tech, level: 2, elim, unit: u, cells, mask: digitsMask }); if (_r) return _r; }
     }
   }
   return null;
@@ -319,7 +319,7 @@ function fish(st, size) {
         if (elim.length) {
           const cells = [];
           for (const l of sel) for (let x = 0; x < 9; x++) if (l.m & (1 << x)) cells.push(byRows ? l.a * 9 + x : x * 9 + l.a);
-          return { tech, level: 3, elim, digit: d, cells };
+          { const _r = emitStep({ tech, level: 3, elim, digit: d, cells }); if (_r) return _r; }
         }
       }
     }
@@ -345,7 +345,7 @@ function xyWing(st) {
             elim.push({ i, mask: common });
           }
         }
-        if (elim.length) return { tech: 'xyWing', level: 3, elim, cells: [p, a, b], digit: digitOf(common) };
+        if (elim.length) { const _r = emitStep({ tech: 'xyWing', level: 3, elim, cells: [p, a, b], digit: digitOf(common) }); if (_r) return _r; }
       }
     }
   }
@@ -365,14 +365,54 @@ const FINDERS = [
   (s) => fish(s, 3),
 ];
 
+
+
+// --- énumération des déductions (indices) : voir js/core/hint.js ---
+let sink = null;
+const STOP = { stop: true };
+/** Pendant l'énumération, remplace « return pas » par un enregistrement et continue le balayage. */
+function emitStep(s) {
+  if (!sink) return s;
+  if (s.level > sink.max || (sink.length && s.level > sink.min)) return null;
+  sink.push(s);
+  if (s.level < sink.min) sink.min = s.level;
+  if (sink.length >= (s.level >= 3 ? 4 : 40)) throw STOP;
+  return null;
+}
+
 /** Prochaine étape logique (la technique la plus simple d'abord), ou null. */
-export function findStep(st, maxLevel = 3) {
+function findStep0(st, maxLevel = 3) {
   for (const f of FINDERS) {
     const step = f(st);
     if (step && step.level <= maxLevel) return step;
   }
   return null;
 }
+
+export function findStep(st, maxLevel = 3) {
+  const saved = sink;
+  sink = null;
+  try {
+    return findStep0(st, maxLevel);
+  } finally {
+    sink = saved;
+  }
+}
+
+/** Toutes les déductions disponibles au niveau de technique le plus simple (indices). */
+export function allSteps(st, maxLevel = 3) {
+  sink = [];
+  sink.max = maxLevel;
+  sink.min = 99;
+  const go = (f, heavy) => { if (sink.length && heavy) return; f(); };
+  try {
+    FINDERS.forEach((f, k) => go(() => f(st), k >= 7));
+  }
+  catch (e) { if (e !== STOP) throw e; }
+  const r = sink; sink = null;
+  return r;
+}
+
 
 const contradiction = (st) => {
   for (let i = 0; i < 81; i++) if (st.g[i] === 0 && st.c[i] === 0) return true;

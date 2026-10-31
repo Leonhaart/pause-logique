@@ -80,9 +80,9 @@ function stepRun(g, N) {
       const a = g[c[j]];
       const b = g[c[j + 1]];
       const d = g[c[j + 2]];
-      if (a >= 0 && a === b && d < 0) return { tech: 'run', level: 1, cells: [[c[j + 2], 1 - a]], units: [u], focus: [c[j], c[j + 1]] };
-      if (b >= 0 && b === d && a < 0) return { tech: 'run', level: 1, cells: [[c[j], 1 - b]], units: [u], focus: [c[j + 1], c[j + 2]] };
-      if (a >= 0 && a === d && b < 0) return { tech: 'run', level: 1, cells: [[c[j + 1], 1 - a]], units: [u], focus: [c[j], c[j + 2]] };
+      if (a >= 0 && a === b && d < 0) { const _r = emitStep({ tech: 'run', level: 1, cells: [[c[j + 2], 1 - a]], units: [u], focus: [c[j], c[j + 1]] }); if (_r) return _r; }
+      if (b >= 0 && b === d && a < 0) { const _r = emitStep({ tech: 'run', level: 1, cells: [[c[j], 1 - b]], units: [u], focus: [c[j + 1], c[j + 2]] }); if (_r) return _r; }
+      if (a >= 0 && a === d && b < 0) { const _r = emitStep({ tech: 'run', level: 1, cells: [[c[j + 1], 1 - a]], units: [u], focus: [c[j], c[j + 2]] }); if (_r) return _r; }
     }
   }
   return null;
@@ -95,7 +95,7 @@ function stepQuota(g, N) {
     if (ones + zeros === N) continue;
     if (ones === half || zeros === half) {
       const fill = ones === half ? 0 : 1;
-      return { tech: 'quota', level: 2, cells: cells.filter((i) => g[i] < 0).map((i) => [i, fill]), units: [u] };
+      { const _r = emitStep({ tech: 'quota', level: 2, cells: cells.filter((i) => g[i] < 0).map((i) => [i, fill]), units: [u] }); if (_r) return _r; }
     }
   }
   return null;
@@ -140,7 +140,7 @@ function stepLine(g, N, unique) {
       if ((and >> j) & 1) out.push([cells[j], 1]);
       else if (!((or >> j) & 1)) out.push([cells[j], 0]);
     }
-    if (out.length) return { tech: unique ? 'unique' : 'line', level: unique ? 4 : 3, cells: out, units: [u] };
+    if (out.length) { const _r = emitStep({ tech: unique ? 'unique' : 'line', level: unique ? 4 : 3, cells: out, units: [u] }); if (_r) return _r; }
   }
   return null;
 }
@@ -166,15 +166,30 @@ function stepTrial(g, N) {
       const t = g.slice();
       t[i] = v;
       if (propagate(t, N, 4)) {
-        return { tech: 'trial', level: 5, cells: [[i, 1 - v]], units: [], focus: [i] };
+        { const _r = emitStep({ tech: 'trial', level: 5, cells: [[i, 1 - v]], units: [], focus: [i] }); if (_r) return _r; }
       }
     }
   }
   return null;
 }
 
+
+
+// --- énumération des déductions (indices) : voir js/core/hint.js ---
+let sink = null;
+const STOP = { stop: true };
+/** Pendant l'énumération, remplace « return pas » par un enregistrement et continue le balayage. */
+function emitStep(s) {
+  if (!sink) return s;
+  if (s.level > sink.max || (sink.length && s.level > sink.min)) return null;
+  sink.push(s);
+  if (s.level < sink.min) sink.min = s.level;
+  if (sink.length >= (s.level >= 3 ? 4 : 40)) throw STOP;
+  return null;
+}
+
 /** Prochaine déduction de niveau <= maxLevel, la plus simple d'abord. */
-export function findStep(g, N, maxLevel = 5, allowTrial = true) {
+function findStep0(g, N, maxLevel = 5, allowTrial = true) {
   let s = stepRun(g, N);
   if (s) return s;
   if (maxLevel >= 2 && (s = stepQuota(g, N))) return s;
@@ -183,6 +198,35 @@ export function findStep(g, N, maxLevel = 5, allowTrial = true) {
   if (maxLevel >= 5 && allowTrial && (s = stepTrial(g, N))) return s;
   return null;
 }
+
+export function findStep(g, N, maxLevel = 5, allowTrial = true) {
+  const saved = sink;
+  sink = null;
+  try {
+    return findStep0(g, N, maxLevel, allowTrial);
+  } finally {
+    sink = saved;
+  }
+}
+
+/** Toutes les déductions disponibles au niveau de technique le plus simple (indices). */
+export function allSteps(g, N, maxLevel = 5, allowTrial = true) {
+  sink = [];
+  sink.max = maxLevel;
+  sink.min = 99;
+  const go = (f, heavy) => { if (sink.length && heavy) return; f(); };
+  try {
+    go(() => stepRun(g, N));
+    if (maxLevel >= 2) go(() => stepQuota(g, N));
+    if (maxLevel >= 3) go(() => stepLine(g, N, false));
+    if (maxLevel >= 4) go(() => stepLine(g, N, true));
+    if (maxLevel >= 5 && allowTrial) go(() => stepTrial(g, N), true);
+  }
+  catch (e) { if (e !== STOP) throw e; }
+  const r = sink; sink = null;
+  return r;
+}
+
 
 /** Résout avec les techniques ; renvoie { solved, rating, counts, grid }. */
 export function solveWithTechniques(puz, N, { maxLevel = 5 } = {}) {

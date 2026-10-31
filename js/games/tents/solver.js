@@ -120,12 +120,12 @@ function stepBasic(st) {
   for (let i = 0; i < cs.length; i++) {
     if (cs[i] !== 1) continue;
     const out = n8[i].filter((j) => cs[j] === -1).map((j) => [j, 0]);
-    if (out.length) return { tech: 'around', level: 1, cells: out, units: [], focus: [i] };
+    if (out.length) { const _r = emitStep({ tech: 'around', level: 1, cells: out, units: [], focus: [i] }); if (_r) return _r; }
   }
   // case sans arbre voisin : herbe
   const bare = [];
   for (let i = 0; i < cs.length; i++) if (cs[i] === -1 && !n4[i].some((j) => cs[j] === 2)) bare.push([i, 0]);
-  if (bare.length) return { tech: 'notree', level: 1, cells: bare, units: [], focus: bare.map(([i]) => i) };
+  if (bare.length) { const _r = emitStep({ tech: 'notree', level: 1, cells: bare, units: [], focus: bare.map(([i]) => i) }); if (_r) return _r; }
   // comptes : ligne complète ou ligne qui doit être pleine
   for (let u = 0; u < lines.length; u++) {
     let tents = 0;
@@ -133,8 +133,8 @@ function stepBasic(st) {
     for (const i of lines[u]) { if (cs[i] === 1) tents++; else if (cs[i] === -1) unk.push(i); }
     if (!unk.length) continue;
     const need = lineTarget(p, u) - tents;
-    if (need === 0) return { tech: 'zero', level: 1, cells: unk.map((i) => [i, 0]), units: [u] };
-    if (need === unk.length) return { tech: 'full', level: 1, cells: unk.map((i) => [i, 1]), units: [u] };
+    if (need === 0) { const _r = emitStep({ tech: 'zero', level: 1, cells: unk.map((i) => [i, 0]), units: [u] }); if (_r) return _r; }
+    if (need === unk.length) { const _r = emitStep({ tech: 'full', level: 1, cells: unk.map((i) => [i, 1]), units: [u] }); if (_r) return _r; }
   }
   return null;
 }
@@ -149,7 +149,7 @@ function stepSingle(st) {
     const opts = options(st, tr);
     const placed = opts.filter((j) => cs[j] === 1);
     if (!placed.length && opts.length === 1 && cs[opts[0]] === -1) {
-      return { tech: 'single', level: 2, cells: [[opts[0], 1]], units: [], focus: [tr, opts[0]] };
+      { const _r = emitStep({ tech: 'single', level: 2, cells: [[opts[0], 1]], units: [], focus: [tr, opts[0]] }); if (_r) return _r; }
     }
   }
   return null;
@@ -167,7 +167,7 @@ function stepAvoid(st) {
       if (cs[x] !== -1 || opts.includes(x)) continue;
       if (opts.every((j) => n8[j].includes(x))) out.push([x, 0]);
     }
-    if (out.length) return { tech: 'avoid', level: 3, cells: out, units: [], focus: [tr, ...opts] };
+    if (out.length) { const _r = emitStep({ tech: 'avoid', level: 3, cells: out, units: [], focus: [tr, ...opts] }); if (_r) return _r; }
   }
   return null;
 }
@@ -207,7 +207,7 @@ function stepLine(st) {
       if (hits[idx] === total) out.push([line[k], 1]);
       else if (hits[idx] === 0) out.push([line[k], 0]);
     });
-    if (out.length) return { tech: 'line', level: 4, cells: out, units: [u] };
+    if (out.length) { const _r = emitStep({ tech: 'line', level: 4, cells: out, units: [u] }); if (_r) return _r; }
   }
   return null;
 }
@@ -230,14 +230,29 @@ function stepTrial(st) {
     for (const v of [1, 0]) {
       const t = cloneState(st);
       t.cs[i] = v;
-      if (propagate(t, 4)) return { tech: 'trial', level: 5, cells: [[i, 1 - v]], units: [], focus: [i] };
+      if (propagate(t, 4)) { const _r = emitStep({ tech: 'trial', level: 5, cells: [[i, 1 - v]], units: [], focus: [i] }); if (_r) return _r; }
     }
   }
   return null;
 }
 
+
+
+// --- énumération des déductions (indices) : voir js/core/hint.js ---
+let sink = null;
+const STOP = { stop: true };
+/** Pendant l'énumération, remplace « return pas » par un enregistrement et continue le balayage. */
+function emitStep(s) {
+  if (!sink) return s;
+  if (s.level > sink.max || (sink.length && s.level > sink.min)) return null;
+  sink.push(s);
+  if (s.level < sink.min) sink.min = s.level;
+  if (sink.length >= (s.level >= 3 ? 4 : 40)) throw STOP;
+  return null;
+}
+
 /** Prochaine déduction de niveau <= maxLevel, la plus simple d'abord. */
-export function findStep(st, maxLevel = 5, allowTrial = true) {
+function findStep0(st, maxLevel = 5, allowTrial = true) {
   let s = stepBasic(st);
   if (s) return s;
   if (maxLevel >= 2 && (s = stepSingle(st))) return s;
@@ -246,6 +261,35 @@ export function findStep(st, maxLevel = 5, allowTrial = true) {
   if (maxLevel >= 5 && allowTrial && (s = stepTrial(st))) return s;
   return null;
 }
+
+export function findStep(st, maxLevel = 5, allowTrial = true) {
+  const saved = sink;
+  sink = null;
+  try {
+    return findStep0(st, maxLevel, allowTrial);
+  } finally {
+    sink = saved;
+  }
+}
+
+/** Toutes les déductions disponibles au niveau de technique le plus simple (indices). */
+export function allSteps(st, maxLevel = 5, allowTrial = true) {
+  sink = [];
+  sink.max = maxLevel;
+  sink.min = 99;
+  const go = (f, heavy) => { if (sink.length && heavy) return; f(); };
+  try {
+    go(() => stepBasic(st));
+    if (maxLevel >= 2) go(() => stepSingle(st));
+    if (maxLevel >= 3) go(() => stepAvoid(st));
+    if (maxLevel >= 4) go(() => stepLine(st));
+    if (maxLevel >= 5 && allowTrial) go(() => stepTrial(st), true);
+  }
+  catch (e) { if (e !== STOP) throw e; }
+  const r = sink; sink = null;
+  return r;
+}
+
 
 /** Résout avec les techniques ; renvoie { solved, rating, counts, grid }. */
 export function solveWithTechniques(p, { maxLevel = 5 } = {}) {

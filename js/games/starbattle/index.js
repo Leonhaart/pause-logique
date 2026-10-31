@@ -4,7 +4,8 @@ import { storage } from '../../core/storage.js';
 import { createRng } from '../../core/rng.js';
 import { History, toolButton } from '../../ui/kit.js';
 import { iconEl } from '../../ui/components.js';
-import { geo, newState, place, findStep, unitsOf } from './solver.js';
+import { geo, newState, place, allSteps, unitsOf } from './solver.js';
+import { planHint, manhattan } from '../../core/hint.js';
 import { puzzleFor } from './puzzle.js';
 import { consume, refillAll, stockInfo, onStock } from './pool.js';
 
@@ -150,10 +151,14 @@ export default {
     function persist() {
       ctx.save({ ...hist.dump(), pid, pen: strokes });
     }
+    let lastCell = -1; // dernière case modifiée par le joueur
     function commit() {
       wrong = new Set();
       hint = null;
       message = null;
+      const before = String(hist.cur);
+      const now = snapshot();
+      for (let i = 0; i < NN; i++) if (before[i] !== now[i]) { lastCell = i; break; }
       if (hist.commit(snapshot())) persist();
       render();
       checkComplete();
@@ -217,14 +222,34 @@ export default {
       const st = newState(reg, N);
       for (let i = 0; i < NN; i++) if (marks[i] === 2 && isSol(i)) place(st, i);
       for (let i = 0; i < NN; i++) if (st.cs[i] === 1 && visual(i, d) === 1 && !isSol(i)) st.cs[i] = 0;
-      let step = st.stars < N ? findStep(st, 5) : null;
+      const rcOf = (i) => [Math.floor(i / N), i % N];
+      const last = lastCell >= 0 ? rcOf(lastCell) : null;
+      const seen = (c) => visual(c, d) === 1;
+      const plan = st.stars < N ? planHint({
+        collect: () => allSteps(st, 5),
+        apply: (s) => { if (s.place != null) place(st, s.place); else for (const c of s.elim) if (st.cs[c] === 1) st.cs[c] = 0; },
+        fresh: (s) => (s.place != null ? (marks[s.place] === 2 ? [] : [s.place]) : s.elim.filter((c) => !seen(c))),
+        where: (s, f) => f.map(rcOf),
+        last,
+      }) : null;
+      let step = plan?.step ?? null;
+      if (plan) step = { ...step, prior: plan.prior, fresh: plan.fresh };
       if (!step && st.stars < N) {
-        const i = [...Array(NN).keys()].find((k) => isSol(k) && marks[k] !== 2);
-        step = { tech: 'search', place: i, units: [] };
+        const cand = [...Array(NN).keys()].filter((k) => isSol(k) && marks[k] !== 2);
+        cand.sort((x, y) => (last ? manhattan(rcOf(x), last) - manhattan(rcOf(y), last) : 0));
+        step = { tech: 'search', place: cand[0], units: [], prior: [], fresh: [cand[0]] };
       }
       if (!step) return;
       hint = { step, revealed: false };
       showHint();
+    }
+    /** Nom d'une unité (0..N-1 lignes, N..2N-1 colonnes, ensuite régions) pour les textes. */
+    function unitName(u) {
+      return u < N ? t('sb.u.row', { n: u + 1 }) : u < 2 * N ? t('sb.u.col', { n: u - N + 1 }) : t('sb.u.reg');
+    }
+    function unitList(us) {
+      const names = us.map(unitName);
+      return names.join(', ');
     }
     function showHint() {
       const s = hint.step;
@@ -236,11 +261,14 @@ export default {
         }
       } else {
         const k = s.tech.startsWith('set') ? +s.tech.slice(3) : 0;
-        const text = s.tech === 'single' ? t('sb.hint.single')
-          : k === 1 ? t('sb.hint.set1')
-          : k > 1 ? t('sb.hint.setN', { k })
+        const cap = (x) => x.charAt(0).toUpperCase() + x.slice(1);
+        const p = { k, units: cap(unitList(s.units ?? [])), targets: unitList(s.targets ?? []) };
+        let text = s.tech === 'single' ? t('sb.hint.single', p)
+          : k === 1 ? t('sb.hint.set1', p)
+          : k > 1 ? t('sb.hint.setN', p)
           : s.tech.startsWith('trial') ? t('sb.hint.trial')
           : t('sb.hint.search');
+        if (s.prior?.length) text += ' ' + t('sb.hint.prior');
         message = { text, action: { label: t('sb.hint.reveal'), run: () => askHint() } };
       }
       render();

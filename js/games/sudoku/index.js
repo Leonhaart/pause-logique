@@ -1,6 +1,7 @@
 import { h } from '../../core/dom.js';
 import { History, toolButton } from '../../ui/kit.js';
-import { parse, ROW, COL, PEERS, UNITS, unitKind, candidates, nextPlacement, popcnt } from './solver.js';
+import { parse, ROW, COL, BOX, PEERS, UNITS, unitKind, candidates, initState, applyStep, allSteps, popcnt } from './solver.js';
+import { planHint, manhattan } from '../../core/hint.js';
 import { puzzleFor } from './puzzle.js';
 
 const bit = (d) => 1 << (d - 1);
@@ -212,13 +213,25 @@ export default {
       }
       const g = Int8Array.from(given);
       for (let i = 0; i < 81; i++) if (!given[i] && vals[i] === sol[i]) g[i] = vals[i]; // on ignore les erreurs du joueur
-      let found = nextPlacement(g);
+      const st = initState(g);
+      const last = sel >= 0 ? [ROW[sel], COL[sel]] : null;
+      // toutes les déductions disponibles : la plus facile, et à égalité la plus proche de la case touchée en dernier
+      const plan = planHint({
+        collect: () => allSteps(st, 3),
+        apply: (step) => applyStep(st, step),
+        fresh: (step) => (step.place && vals[step.place.i] !== step.place.d ? [step.place] : []),
+        where: (step) => [[ROW[step.place.i], COL[step.place.i]]],
+        last,
+      });
+      let found = plan && { i: plan.step.place.i, d: plan.step.place.d, tech: plan.step.tech, unit: plan.step.unit ?? null, prior: plan.prior };
       if (!found) {
         const c = candidates(g);
         let best = -1;
+        let bestKey = null;
         for (let i = 0; i < 81; i++) {
           if (g[i]) continue;
-          if (best < 0 || popcnt(c[i]) < popcnt(c[best])) best = i;
+          const key = [popcnt(c[i]), last ? manhattan([ROW[i], COL[i]], last) : 0];
+          if (best < 0 || key[0] < bestKey[0] || (key[0] === bestKey[0] && key[1] < bestKey[1])) { best = i; bestKey = key; }
         }
         if (best < 0) return;
         found = { i: best, d: sol[best], tech: 'search', unit: null, prior: [] };
@@ -229,20 +242,25 @@ export default {
     }
     function showHint() {
       const hn = hint;
-      const cell = t('sudoku.cell', { r: ROW[hn.i] + 1, c: COL[hn.i] + 1 });
+      const r = ROW[hn.i] + 1;
+      const c = COL[hn.i] + 1;
+      const cell = t('sudoku.cell', { r, c });
       if (hn.revealed) {
         message = {
           text: t('hint.answer', { cell, d: hn.d }),
           action: { label: t('hint.place', { d: hn.d }), run: () => setValue(hn.i, hn.d) },
         };
       } else {
-        let text =
-          hn.tech === 'nakedSingle' ? t('hint.nakedSingle')
-          : hn.tech === 'hiddenSingle' ? t(`hint.hiddenSingle.${unitKind(hn.unit)}`)
-          : t('hint.search');
+        let text;
+        if (hn.tech === 'nakedSingle') text = t('hint.nakedSingle', { r, c, d: hn.d });
+        else if (hn.tech === 'hiddenSingle') {
+          const kind = unitKind(hn.unit);
+          const params = { d: hn.d, r, c, u: kind === 'row' ? r : kind === 'col' ? c : t(`sudoku.box.${BOX[hn.i]}`) };
+          text = t(`hint.hiddenSingle.${kind}`, params);
+        } else text = t('hint.search', { r, c });
         if (hn.prior.length) {
-          const names = [...new Set(hn.prior.map((p) => t(`technique.${p.tech}`)))].join(', ');
-          text += ' ' + t('hint.prior', { list: names });
+          const names = [...new Set(hn.prior.filter((p) => p !== 'nakedSingle' && p !== 'hiddenSingle').map((p) => t(`technique.${p}`)))];
+          if (names.length) text += ' ' + t('hint.prior', { list: names.join(', ') });
         }
         message = { text, action: { label: t('hint.reveal'), run: () => askHint() } };
       }

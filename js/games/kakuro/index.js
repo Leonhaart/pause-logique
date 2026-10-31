@@ -1,7 +1,8 @@
 // Kakuro : interface. Appui sur une case blanche, puis pavé de chiffres ; mode notes ; indice en deux temps.
 import { h } from '../../core/dom.js';
 import { History, toolButton } from '../../ui/kit.js';
-import { geoOf, newState, findStep, isSolution, autoCandidates } from './solver.js';
+import { geoOf, newState, allSteps, isSolution, autoCandidates } from './solver.js';
+import { planHint, manhattan } from '../../core/hint.js';
 import { puzzleFor } from './puzzle.js';
 import { consume, refillAll, stockInfo, onStock } from './pool.js';
 
@@ -167,26 +168,61 @@ export default {
       // On ne retient que les chiffres justes posés par le joueur.
       const st = newState(puz);
       for (const i of g.whites) if (!isGiven(i) && vals[i] && vals[i] === sol[i]) st.cand[i] = bit(vals[i]);
-      const fresh = (before) => g.whites.filter((i) => !single(before[i]) && single(st.cand[i]) && digitOf(st.cand[i]) !== vals[i]);
+      const last = sel >= 0 ? [row(sel), col(sel)] : null;
+      // toutes les déductions disponibles : la plus facile, et à égalité la plus proche de la case touchée en dernier
+      const plan = planHint({
+        collect: () => allSteps(st, 4),
+        apply: (s) => { for (const [i, m] of s.changes) st.cand[i] &= m; },
+        fresh: (s) => s.changes.filter(([i, m]) => !isGiven(i) && single(m) && digitOf(m) !== vals[i]).map(([i, m]) => [i, digitOf(m)]),
+        where: (s, f) => f.map(([i]) => [row(i), col(i)]),
+        last,
+      });
       let found = null;
-      const prior = [];
-      for (let guard = 0; guard < 600 && !found; guard++) {
-        const before = st.cand.slice();
-        const s = findStep(st, 4);
-        if (!s) break;
-        for (const [i, m] of s.changes) st.cand[i] = m;
-        const f = fresh(before);
-        if (f.length) found = { step: s, i: f[0], d: digitOf(st.cand[f[0]]), prior: [...new Set(prior)] };
-        else prior.push(s.tech);
-      }
-      if (!found) {
-        const i = g.whites.find((k) => !isGiven(k) && vals[k] !== sol[k]);
-        if (i == null) return;
-        found = { step: { tech: 'search', focus: [i], runs: g.runOf[i].filter((r) => r >= 0) }, i, d: sol[i], prior: [] };
+      if (plan) {
+        // on choisit la case de la déduction la plus proche de la dernière action
+        const [i, d] = plan.fresh.reduce((best, x) => (!last || manhattan([row(x[0]), col(x[0])], last) < manhattan([row(best[0]), col(best[0])], last) ? x : best), plan.fresh[0]);
+        found = { step: plan.step, i, d, prior: plan.prior, info: explain(plan.step, i, d, st) };
+      } else {
+        let k = -1;
+        let bd = Infinity;
+        for (const x of g.whites) {
+          if (isGiven(x) || vals[x] === sol[x]) continue;
+          const dd = last ? manhattan([row(x), col(x)], last) : 0;
+          if (dd < bd) { bd = dd; k = x; }
+        }
+        if (k < 0) return;
+        found = { step: { tech: 'search', focus: [k], runs: g.runOf[k].filter((r) => r >= 0) }, i: k, d: sol[k], prior: [], info: { r: row(k) + 1, c: col(k) + 1, d: sol[k] } };
       }
       hint = { ...found, revealed: false };
       sel = found.i;
       showHint();
+    }
+    /** Paramètres concrets du texte d'indice (ligne, colonne, somme, chiffres). */
+    function explain(step, i, d, st) {
+      const p = { r: row(i) + 1, c: col(i) + 1, d };
+      const runOfBoth = (a, b) => g.runOf[a].find((ri) => ri >= 0 && g.runs[ri].cells.includes(b));
+      const setRun = (ri) => {
+        const run = g.runs[ri];
+        p.dir = t(run.dir === 'h' ? 'kk.dir.h' : 'kk.dir.v');
+        p.sum = run.sum;
+        p.n = run.cells.length;
+        return run;
+      };
+      if (step.tech === 'naked') {
+        const f = step.focus[0];
+        p.r0 = row(f) + 1;
+        p.c0 = col(f) + 1;
+        p.d0 = digitOf(st.cand[f]);
+        setRun(runOfBoth(f, i) ?? g.runOf[i].find((ri) => ri >= 0));
+      } else if (step.tech === 'combo' || step.tech === 'run') {
+        const run = setRun(step.runs[0]);
+        let mask = 0;
+        for (const x of run.cells) mask |= step.changes.find(([y]) => y === x)?.[1] ?? st.cand[x];
+        p.digits = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((k) => mask & bit(k)).join(', ');
+      } else if (step.tech.startsWith('trial')) {
+        p.x = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((k) => st.cand[i] & bit(k) && !(step.changes.find(([y]) => y === i)[1] & bit(k))).join(', ');
+      }
+      return p;
     }
     function showHint() {
       const hn = hint;
@@ -196,7 +232,7 @@ export default {
           action: { label: t('kk.hint.place', { d: hn.d }), run: () => setValue(hn.i, hn.d) },
         };
       } else {
-        let text = t(`kk.hint.${hn.step.tech}`);
+        let text = t(`kk.hint.${hn.step.tech}`, hn.info);
         const names = [...new Set(hn.prior.filter((p) => p !== hn.step.tech).map((p) => t(`kk.prior.${p}`)))];
         if (names.length) text += ' ' + t('kk.hint.prior', { list: names.join(', ') });
         message = { text, action: { label: t('hint.reveal'), run: () => askHint() } };
