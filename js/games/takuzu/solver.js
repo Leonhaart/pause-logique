@@ -51,6 +51,28 @@ function lineInfo(g, N, u) {
   return { known, val, ones, zeros, cells };
 }
 
+let lastFail = null;
+/** Cause de la violation (même contrôle que broken) : { kind: count|three|dup, ... } ou null. */
+export function whyBroken(g, N) {
+  const { lineCells } = geo(N);
+  const half = N / 2;
+  const complete = [new Map(), new Map()];
+  for (let u = 0; u < 2 * N; u++) {
+    const { known, val, ones, zeros, cells } = lineInfo(g, N, u);
+    if (ones > half || zeros > half) return { kind: 'count', u, sym: ones > half ? 1 : 0 };
+    for (let j = 2; j < N; j++) {
+      const a = g[cells[j]];
+      if (a >= 0 && a === g[cells[j - 1]] && a === g[cells[j - 2]]) return { kind: 'three', u, sym: a, cells: [cells[j - 2], cells[j - 1], cells[j]] };
+    }
+    if (known === (1 << N) - 1) {
+      const m = complete[u < N ? 0 : 1];
+      if (m.has(val)) return { kind: 'dup', u, u2: m.get(val) };
+      m.set(val, u);
+    }
+  }
+  return null;
+}
+
 /** Une règle est déjà violée par les cases posées. */
 export function broken(g, N) {
   const { lineCells } = geo(N);
@@ -130,7 +152,7 @@ function stepLine(g, N, unique) {
     const { known, cells } = lineInfo(g, N, u);
     if (known === (1 << N) - 1) continue;
     const pats = candidates(g, N, u, unique, masks);
-    if (!pats.length) return { contra: true };
+    if (!pats.length) { lastFail = { kind: 'nopat', u }; return { contra: true }; }
     let and = (1 << N) - 1;
     let or = 0;
     for (const p of pats) { and &= p; or |= p; }
@@ -165,8 +187,12 @@ function stepTrial(g, N) {
     for (const v of [0, 1]) {
       const t = g.slice();
       t[i] = v;
+      lastFail = null;
       if (propagate(t, N, 4)) {
-        { const _r = emitStep({ tech: 'trial', level: 5, cells: [[i, 1 - v]], units: [], focus: [i] }); if (_r) return _r; }
+        const ghost = [];
+        for (let j = 0; j < g.length; j++) if (j !== i && g[j] < 0 && t[j] >= 0) ghost.push([j, t[j]]);
+        const fail = whyBroken(t, N) ?? lastFail;
+        { const _r = emitStep({ tech: 'trial', level: 5, cells: [[i, 1 - v]], units: [], focus: [i], why: { hyp: [i, v], ghost, fail } }); if (_r) return _r; }
       }
     }
   }

@@ -220,7 +220,16 @@ export default {
         for (const x of run.cells) mask |= step.changes.find(([y]) => y === x)?.[1] ?? st.cand[x];
         p.digits = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((k) => mask & bit(k)).join(', ');
       } else if (step.tech.startsWith('trial')) {
-        p.x = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((k) => st.cand[i] & bit(k) && !(step.changes.find(([y]) => y === i)[1] & bit(k))).join(', ');
+        const w = step.why;
+        p.x = w ? w.hyp[1] : 0;
+        p.rx = w ? row(w.hyp[0]) + 1 : 0;
+        p.cx = w ? col(w.hyp[0]) + 1 : 0;
+        p.n = w ? w.ghost.length : 0;
+        const f = w?.fail;
+        if (f) {
+          const run = f.run != null && f.run >= 0 ? g.runs[f.run] : null;
+          p.fail = t(f.kind === 'support' ? (f.cell === w.hyp[0] ? 'kk.fail.direct' : 'kk.fail.support') : 'kk.fail.empty', { fr: row(f.cell) + 1, fc: col(f.cell) + 1, dir: run ? t(run.dir === 'h' ? 'kk.dir.h' : 'kk.dir.v') : '', sum: run?.sum ?? 0 });
+        } else p.fail = '';
       }
       return p;
     }
@@ -232,7 +241,7 @@ export default {
           action: { label: t('kk.hint.place', { d: hn.d }), run: () => setValue(hn.i, hn.d) },
         };
       } else {
-        let text = t(`kk.hint.${hn.step.tech}`, hn.info);
+        let text = t(hn.step.tech.startsWith('trial') ? (hn.step.why?.ghost?.length ? 'kk.hint.trialChain' : 'kk.hint.trial') : `kk.hint.${hn.step.tech}`, hn.info);
         const names = [...new Set(hn.prior.filter((p) => p !== hn.step.tech).map((p) => t(`kk.prior.${p}`)))];
         if (names.length) text += ' ' + t('kk.hint.prior', { list: names.join(', ') });
         message = { text, action: { label: t('hint.reveal'), run: () => askHint() } };
@@ -246,6 +255,9 @@ export default {
       const selRuns = sel >= 0 ? new Set(g.runOf[sel].filter((r) => r >= 0).flatMap((r) => g.runs[r].cells)) : null;
       const hintRuns = hint && !hint.revealed ? new Set((hint.step.runs ?? []).flatMap((r) => g.runs[r].cells)) : null;
       const focusSet = hint && !hint.revealed ? new Set(hint.step.focus ?? []) : null;
+      const why = hint && !hint.revealed && hint.step.tech.startsWith('trial') ? hint.step.why : null;
+      const ghostMap = new Map((why?.ghost ?? []).map(([i, d]) => [i, d]));
+      const failRunCells = why?.fail?.run != null && why.fail.run >= 0 ? new Set(g.runs[why.fail.run].cells) : null;
       const focusDigit = sel >= 0 ? vals[sel] : 0;
       for (const i of g.whites) {
         const c = cells[i];
@@ -261,6 +273,13 @@ export default {
         if (hintRuns?.has(i)) cls.push('hint-unit');
         if (focusSet?.has(i)) cls.push('hint-focus');
         if (hint?.revealed && hint.i === i) cls.push('hint-cell');
+        c.el.dataset.g = '';
+        if (why) {
+          if (i === why.hyp[0]) { cls.push('hint-hyp'); c.el.dataset.g = String(why.hyp[1]); }
+          else if (ghostMap.has(i)) { cls.push('hint-ghost'); c.el.dataset.g = String(ghostMap.get(i)); }
+          if (failRunCells?.has(i)) cls.push('hint-unit');
+          if (i === why.fail?.cell) cls.push('hint-fail');
+        }
         c.el.className = cls.join(' ');
         c.val.textContent = v ? String(v) : '';
         for (let d = 1; d <= 9; d++) {

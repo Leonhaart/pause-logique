@@ -34,3 +34,12 @@
   .tool-label { font-size: 10px; letter-spacing: -0.01em; }
   .tool { padding-inline: 0; }
 }
+
+/* Indices : essai logique. Hypothèse (hyp), conséquences (ghost) et cause de l'impasse (fail). */
+.hint-hyp::after, .hint-ghost::after {
+  content: attr(data-g); position: absolute; inset: 0; display: grid; place-items: center;
+  font: 800 calc(min(92vw, 540px) * 0.62 / var(--n, 8))/1 var(--sans); color: var(--accent); pointer-events: none; z-index: 2;
+}
+.hint-ghost::after { opacity: .6; }
+.hint-hyp { box-shadow: inset 0 0 0 3px var(--accent) !important; z-index: 2; }
+.hint-fail { box-shadow: inset 0 0 0 3px var(--danger), inset 0 0 0 100px color-mix(in srgb, var(--danger) 24%, transparent) !important; z-index: 3; }

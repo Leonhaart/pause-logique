@@ -1,5 +1,5 @@
 // Fichier généré par tools/gen-sw-assets.mjs, ne pas modifier à la main.
-self.APP_VERSION = "ba0ace2bb7";
+self.APP_VERSION = "456a48ae10";
 self.APP_ASSETS = [
   "./",
   "THIRD_PARTY_NOTICES.md",

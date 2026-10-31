@@ -188,6 +188,7 @@ function cellAssignments(st, c) {
 const set = (st, k, v) => { st.e[k] = v; };
 
 /** Propagation rapide jusqu'au point fixe. combo : ajoute les combinaisons par case. true si contradiction. */
+let lastFail = null;
 function fastProp(st, combo) {
   const { p, g, e } = st;
   const NC = p.N * p.N;
@@ -197,30 +198,31 @@ function fastProp(st, combo) {
       const cl = p.clue[c];
       if (cl < 0) continue;
       const [L, U] = cellCount(st, c);
-      if (L > cl || L + U < cl) return true;
+      if (L > cl) { lastFail = { kind: 'cellOver', cell: c }; return true; }
+      if (L + U < cl) { lastFail = { kind: 'cellUnder', cell: c }; return true; }
       if (U === 0) continue;
       if (L === cl) { for (const k of g.cellEdges[c]) if (e[k] === 0) set(st, k, 2); changed = true; }
       else if (L + U === cl) { for (const k of g.cellEdges[c]) if (e[k] === 0) set(st, k, 1); changed = true; }
     }
     for (let v = 0; v < g.V; v++) {
       const [L, U] = vertCount(st, v);
-      if (L > 2) return true;
+      if (L > 2) { lastFail = { kind: 'vertOver', vert: v }; return true; }
       if (L === 2) { if (U) { for (const k of g.vertEdges[v]) if (e[k] === 0) set(st, k, 2); changed = true; } }
       else if (L === 1) {
-        if (U === 0) return true;
+        if (U === 0) { lastFail = { kind: 'vertEnd', vert: v }; return true; }
         if (U === 1) { for (const k of g.vertEdges[v]) if (e[k] === 0) set(st, k, 1); changed = true; }
       } else if (U === 1) { for (const k of g.vertEdges[v]) if (e[k] === 0) set(st, k, 2); changed = true; }
     }
     if (changed) continue;
     const lr = loopRule(st);
-    if (lr.bad) return true;
+    if (lr.bad) { lastFail = { kind: 'loop' }; return true; }
     if (lr.cross.length) { for (const k of lr.cross) set(st, k, 2); continue; }
     if (combo) {
       for (let c = 0; c < NC && !changed; c++) {
         if (p.clue[c] < 0) continue;
         const { unk, res } = cellAssignments(st, c);
         if (!unk.length) continue;
-        if (!res.length) return true;
+        if (!res.length) { lastFail = { kind: 'combo', cell: c }; return true; }
         for (const k of unk) {
           const v0 = res[0].get(k);
           if (res.every((m) => m.get(k) === v0)) { set(st, k, v0); changed = true; }
@@ -235,7 +237,8 @@ function fastProp(st, combo) {
       const comp = components(st);
       let cycles = 0;
       for (let v = 0; v < g.V; v++) if (comp.find(v) === v && comp.edges[v]) cycles++;
-      return cycles !== 1 || comp.total === 0;
+      if (cycles !== 1 || comp.total === 0) { lastFail = { kind: 'cycles', n: cycles }; return true; }
+      return false;
     }
     return false;
   }
@@ -332,7 +335,13 @@ function stepTrial(st) {
     for (const v of [1, 2]) {
       const t = clone(st);
       t.e[k] = v;
-      if (fastProp(t, true)) { const _r = emitStep({ tech: 'trial', level: 3, edges: [k], changes: [[k, 3 - v]] }); if (_r) return _r; }
+lastFail = null;
+      if (fastProp(t, true)) {
+        const ghost = [];
+        for (let j = 0; j < g.E; j++) if (j !== k && t.e[j] === 1 && st.e[j] === 0) ghost.push([j, 1]);
+        const _r = emitStep({ tech: 'trial', level: 3, edges: [k], changes: [[k, 3 - v]], why: { hyp: [k, v], ghost, fail: lastFail } });
+        if (_r) return _r;
+      }
     }
   }
   return null;

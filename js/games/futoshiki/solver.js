@@ -193,7 +193,12 @@ function stepTrial(st) {
       if (!(st.cand[i] & bit(d))) continue;
       const t = cloneState(st);
       t.cand[i] = bit(d);
-      if (propagate(t, 4)) { const _r = emitStep({ tech: 'trial', level: 5, digit: d, set: [[i, st.cand[i] & ~bit(d)]], units: [], focus: [i] }); if (_r) return _r; }
+      if (propagate(t, 4)) {
+        const ghost = [];
+        for (let j = 0; j < t.cand.length; j++) if (j !== i && pop(t.cand[j]) === 1 && pop(st.cand[j]) > 1) ghost.push([j, lowDigit(t.cand[j])]);
+        const _r = emitStep({ tech: 'trial', level: 5, digit: d, set: [[i, st.cand[i] & ~bit(d)]], units: [], focus: [i], why: { hyp: [i, d], ghost, fail: { kind: 'empty', cell: t.cand.findIndex((m) => m === 0) } } });
+        if (_r) return _r;
+      }
     }
   }
   return null;

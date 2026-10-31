@@ -202,6 +202,18 @@ export default {
         p.edge = sideOf(step.edges[0]);
         p.hyp = t(step.changes[0][1] === 1 ? 'sl.what.crossA' : 'sl.what.lineA');
         p.then = t(step.changes[0][1] === 1 ? 'sl.what.line' : 'sl.what.cross');
+        const w = step.why;
+        p.ng = w ? w.ghost.length : 0;
+        const f = w?.fail;
+        if (f) {
+          const fc = f.cell;
+          p.fail = t(`sl.fail.${f.kind}`, {
+            fn: fc != null ? puz.clue[fc] : 0,
+            fr: fc != null ? Math.floor(fc / N) + 1 : 0,
+            fc: fc != null ? (fc % N) + 1 : 0,
+            fv: f.vert != null ? vertName(f.vert) : '',
+          });
+        } else p.fail = '';
       }
       return p;
     }
@@ -213,7 +225,7 @@ export default {
           action: { label: t('sl.hint.place'), run: () => { for (const [k, v] of hn.edges) marks[k] = v; lastEdge = hn.edges[hn.edges.length - 1][0]; commit(); } },
         };
       } else {
-        let text = t(`sl.hint.${hn.step.tech}`, hn.info);
+        let text = t(hn.step.tech === 'trial' ? (hn.info.ng ? 'sl.hint.trialChain' : 'sl.hint.trial') : `sl.hint.${hn.step.tech}`, hn.info);
         const names = [...new Set(hn.prior.filter((p) => p !== hn.step.tech).map((p) => t(`sl.prior.${p}`)))];
         if (names.length) text += ' ' + t('sl.hint.prior', { list: names.join(', ') });
         message = { text, action: { label: t('hint.reveal'), run: () => askHint() } };
@@ -278,11 +290,15 @@ export default {
       const hintCells = new Set();
       const hintVerts = new Set();
       const ghostSet = new Set();
+      const why = hint && !hint.revealed && hint.step.tech === 'trial' ? hint.step.why : null;
+      const chainSet = new Set((why?.ghost ?? []).map(([k]) => k));
+      const failCells = new Set(why?.fail?.cell != null ? [why.fail.cell] : []);
+      const failVerts = new Set(why?.fail?.vert != null ? [why.fail.vert] : []);
       if (hint) {
         if (!hint.revealed) {
-          for (const c of hint.step.cells ?? []) hintCells.add(c);
-          for (const v of hint.step.verts ?? []) hintVerts.add(v);
-          for (const k of hint.step.edges ?? []) ghostSet.add(k);
+          if (!why) for (const c of hint.step.cells ?? []) hintCells.add(c);
+          if (!why) for (const v of hint.step.verts ?? []) hintVerts.add(v);
+          if (!why) for (const k of hint.step.edges ?? []) ghostSet.add(k);
         } else for (const [k] of hint.edges) ghostSet.add(k);
       }
       const deg = new Int8Array(g.V);
@@ -297,7 +313,8 @@ export default {
         const bad = showWrong(k);
         edgeEls[k].setAttribute('class', 'sl-edge' + (marks[k] === 1 ? ' on' : '') + (marks[k] === 1 && bad ? ' bad' : '') + (finished ? ' done' : ''));
         crossEls[k].setAttribute('class', 'sl-x' + (marks[k] === 2 ? ' on' : '') + (marks[k] === 2 && bad ? ' bad' : ''));
-        ghostEls[k].setAttribute('class', 'sl-ghost' + (ghostSet.has(k) ? ' on' : ''));
+        const gc = why && k === why.hyp[0] ? ' on hyp' + (why.hyp[1] === 2 ? ' hypx' : '') : why && chainSet.has(k) ? ' on chain' : ghostSet.has(k) ? ' on' : '';
+        ghostEls[k].setAttribute('class', 'sl-ghost' + gc);
       }
       // intérieur de la boucle, une fois terminée
       for (let i = 0; i < NN; i++) {
@@ -309,7 +326,7 @@ export default {
           for (let cc = 0; cc <= c; cc++) if (marks[g.vEdge(r, cc)] === 1) n++;
           inside = n % 2 === 1;
         }
-        fillEls[i].setAttribute('class', 'sl-fill' + (inside ? ' inside' : '') + (hintCells.has(i) ? ' hint' : ''));
+        fillEls[i].setAttribute('class', 'sl-fill' + (inside ? ' inside' : '') + (hintCells.has(i) ? ' hint' : '') + (failCells.has(i) ? ' fail' : ''));
         const el = clueEls.get(i);
         if (el) {
           const cl = puz.clue[i];
@@ -318,7 +335,7 @@ export default {
       }
       for (let v = 0; v < g.V; v++) {
         dotEls[v].setAttribute('class', 'sl-dot' + (mode === 'live' && deg[v] > 2 ? ' bad' : ''));
-        haloEls[v].setAttribute('class', 'sl-halo' + (hintVerts.has(v) ? ' on' : ''));
+        haloEls[v].setAttribute('class', 'sl-halo' + (hintVerts.has(v) ? ' on' : failVerts.has(v) ? ' on fail' : ''));
       }
       tools.undo.disabled = !hist.canUndo || finished;
       tools.redo.disabled = !hist.canRedo || finished;

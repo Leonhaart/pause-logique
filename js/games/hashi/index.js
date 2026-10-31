@@ -148,6 +148,20 @@ export default {
         const b = g.islands[g.edges[x].a];
         Object.assign(p, { r: a.r + 1, c: a.c + 1, v: a.v, r2: b.r + 1, c2: b.c + 1 });
       }
+      if (step.tech.startsWith('trial') && step.why) {
+        const w = step.why;
+        const e = g.edges[w.hyp[0]];
+        const A = g.islands[e.a];
+        const B = g.islands[e.b];
+        p.r = A.r + 1; p.c = A.c + 1; p.v = A.v; p.r2 = B.r + 1; p.c2 = B.c + 1;
+        p.hyp = t(`ha.hyp.${w.hyp[1]}`);
+        p.ng = w.ghost.filter(([, v]) => v >= 1).length;
+        const f = w.fail;
+        if (f) {
+          const I = f.island != null ? g.islands[f.island] : f.islands ? g.islands[f.islands[0]] : null;
+          p.fail = t(`ha.fail.${f.kind}`, { fv: I?.v ?? 0, fr: (I?.r ?? 0) + 1, fc: (I?.c ?? 0) + 1 });
+        } else p.fail = '';
+      }
       return p;
     }
     function showHint() {
@@ -161,7 +175,7 @@ export default {
           action: { label: t('ha.hint.place'), run: () => { for (const [y, v] of hn.cells) marks[y] = v; commit(); } },
         };
       } else {
-        let text = t(`ha.hint.${hn.step.tech}`, hn.info);
+        let text = t(hn.step.tech.startsWith('trial') ? (hn.info.ng ? 'ha.hint.trialChain' : 'ha.hint.trial') : `ha.hint.${hn.step.tech}`, hn.info);
         const names = [...new Set(hn.prior.filter((p) => p !== hn.step.tech).map((p) => t(`ha.prior.${p}`)))];
         if (names.length) text += ' ' + t('ha.hint.prior', { list: names.join(', ') });
         message = { text, action: { label: t('hint.reveal'), run: () => askHint() } };
@@ -209,6 +223,8 @@ export default {
       const hf = new Set(hint && !hint.revealed ? hint.step.focus ?? [] : []);
       const hc = new Set(hint?.revealed ? hint.cells.map(([x]) => x) : []);
       const P = (i) => [col(i) + 0.5, row(i) + 0.5];
+      const why = hint && !hint.revealed && hint.step.tech.startsWith('trial') ? hint.step.why : null;
+      const failIsl = new Set(why?.fail?.island != null ? [why.fail.island] : why?.fail?.islands ?? []);
       const parts = [];
       for (let k = 0; k < N * N; k++) parts.push(`<circle class="ha-pt" cx="${col(k) + 0.5}" cy="${row(k) + 0.5}" r="0.045"/>`);
       g.edges.forEach((e, x) => {
@@ -226,6 +242,24 @@ export default {
           parts.push(`<line class="${cls.join(' ')}" x1="${x1 + dx}" y1="${y1 + dy}" x2="${x2 + dx}" y2="${y2 + dy}"/>`);
         }
       });
+      if (why) {
+        const mid = (x) => { const [ax, ay] = P(g.islands[g.edges[x].a].cell); const [bx, by] = P(g.islands[g.edges[x].b].cell); return [(ax + bx) / 2, (ay + by) / 2]; };
+        const dashed = (x, n, cls) => {
+          const e = g.edges[x];
+          const [x1, y1] = P(g.islands[e.a].cell);
+          const [x2, y2] = P(g.islands[e.b].cell);
+          const offs = n === 2 ? [-0.1, 0.1] : [0];
+          for (const o of offs) {
+            const dx = e.dir === 'h' ? 0 : o;
+            const dy = e.dir === 'h' ? o : 0;
+            parts.push(`<line class="${cls}" x1="${x1 + dx}" y1="${y1 + dy}" x2="${x2 + dx}" y2="${y2 + dy}"/>`);
+          }
+        };
+        for (const [y, v] of why.ghost) if (v >= 1) dashed(y, v, 'ha-ghost');
+        const [hx, hk] = why.hyp;
+        if (hk === 0) { const [mx, my] = mid(hx); parts.push(`<text class="ha-hyp" x="${mx}" y="${my + 0.17}">✕</text>`); } else dashed(hx, hk, 'ha-ghost ha-hypline');
+        if (why.fail?.edge != null) { const [mx, my] = mid(why.fail.edge); parts.push(`<circle class="ha-failmark" cx="${mx}" cy="${my}" r="0.24"/>`); }
+      }
       const near = new Set();
       if (sel >= 0) for (const x of g.inc[sel]) if (!(blocked(x) && marks[x] === 0)) near.add(g.edges[x].a === sel ? g.edges[x].b : g.edges[x].a);
       g.islands.forEach((isl, i) => {
@@ -235,7 +269,8 @@ export default {
         else if (d > isl.v && mode === 'live') cls.push('over');
         if (i === sel && !finished) cls.push('sel');
         else if (near.has(i) && !finished) cls.push('near');
-        if (hf.has(i)) cls.push('hint-focus');
+        if (hf.has(i) && !why) cls.push('hint-focus');
+        if (failIsl.has(i)) cls.push('hint-fail');
         const [cx, cy] = P(isl.cell);
         parts.push(`<g class="${cls.join(' ')}" role="img" aria-label="${t('ha.island', { n: isl.v, c: d })}" transform="translate(${cx} ${cy})"><path class="ha-land" d="${LAND}"/><text x="0" y="0.2">${isl.v}</text></g>`);
       });

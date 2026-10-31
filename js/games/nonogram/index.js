@@ -199,6 +199,18 @@ export default {
         p.black = s.values.filter((v) => v === 1).length;
         p.cross = s.values.filter((v) => v === 2).length;
       }
+      if (s.tech === 'trial' && s.why) {
+        const w = s.why;
+        p.r = Math.floor(w.hyp[0] / N) + 1;
+        p.c = (w.hyp[0] % N) + 1;
+        p.hs = w.hyp[1] === 1 ? t('ng.v.black') : t('ng.v.cross');
+        p.ng = w.ghost.length;
+        const f = w.fail;
+        if (f) {
+          const clue = (f.isRow ? rows : cols)[f.k];
+          p.fail = t('ng.fail.line', { unit: f.isRow ? t('ng.u.row', { n: f.k + 1 }) : t('ng.u.col', { n: f.k + 1 }), clue: clue.length ? clue.join(' ') : '0' });
+        } else p.fail = '';
+      }
       p.v = s.values[0] === 1 ? t('ng.v.black') : t('ng.v.cross');
       p.o = s.values[0] === 1 ? t('ng.v.cross') : t('ng.v.black');
       return p;
@@ -211,7 +223,7 @@ export default {
           action: { label: t('ng.hint.apply'), run: () => { s.cells.forEach((idx, j) => { st[idx] = s.values[j]; }); commit(); } },
         };
       } else {
-        let text = t(TECH_TEXT[s.tech] ?? 'ng.hint.trial', explain(s));
+        let text = t(s.tech === 'trial' && s.why?.ghost?.length ? 'ng.hint.trialChain' : TECH_TEXT[s.tech] ?? 'ng.hint.trial', explain(s));
         if (s.prior?.length) text += ' ' + t('ng.hint.prior');
         message = { text, action: { label: t('sb.hint.reveal'), run: () => askHint() } };
       }
@@ -280,6 +292,9 @@ export default {
       const mode = ctx.settings().errors;
       const s = hint?.step;
       const hintCells = new Set(s && hint ? s.cells : []);
+      const why = s && hint && !hint.revealed && s.tech === 'trial' ? s.why : null;
+      const ghostMap = new Map((why?.ghost ?? []).map(([i, v]) => [i, v]));
+      const fl = why?.fail;
       const fr = focus >= 0 ? (focus / N) | 0 : -1;
       const fc = focus >= 0 ? focus % N : -1;
       for (let i = 0; i < NN; i++) {
@@ -294,7 +309,13 @@ export default {
         if (focus >= 0 && (r === fr || c === fc) && !finished) cls.push('guide');
         if ((mode === 'live' && isWrong(i)) || wrong.has(i)) cls.push('bad');
         if (s && hint && !hint.revealed && ((s.isRow === true && r === s.k) || (s.isRow === false && c === s.k))) cls.push('hint-line');
-        if (hintCells.has(i) && s && (hint.revealed || s.tech === 'trial')) cls.push('hint-cell');
+        if (hintCells.has(i) && s && (hint.revealed || (s.tech === 'trial' && !why))) cls.push('hint-cell');
+        el.dataset.g = '';
+        if (why) {
+          if (i === why.hyp[0]) { cls.push('hint-hyp'); el.dataset.g = why.hyp[1] === 1 ? '■' : '✕'; }
+          else if (ghostMap.has(i)) { cls.push('hint-ghost'); el.dataset.g = ghostMap.get(i) === 1 ? '■' : '✕'; }
+          if (fl && ((fl.isRow && r === fl.k) || (!fl.isRow && c === fl.k))) cls.push('hint-fail');
+        }
         el.className = cls.join(' ');
         if (finished && st[i] === 1) el.style.setProperty('--c', (colors && colors[i]) || fallback);
       }

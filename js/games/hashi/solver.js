@@ -99,6 +99,21 @@ function closedComponent(st, forceEdge, k) {
   return closed;
 }
 
+/** Cause de la violation : { kind: empty|over|under|iso, ... } ou null. */
+export function whyBroken(st, iso = false) {
+  const { g, dom } = st;
+  for (let x = 0; x < dom.length; x++) if (!dom[x]) return { kind: 'empty', edge: x };
+  for (let i = 0; i < g.islands.length; i++) {
+    let mn = 0;
+    let mx = 0;
+    for (const x of g.inc[i]) { mn += lo(dom[x]); mx += hi(dom[x]); }
+    if (mn > g.islands[i].v) return { kind: 'over', island: i };
+    if (mx < g.islands[i].v) return { kind: 'under', island: i };
+  }
+  if (iso) { const c = closedComponent(st, -1, 0); if (c.length) return { kind: 'iso', islands: c[0] }; }
+  return null;
+}
+
 /** Une règle est déjà violée. */
 export function broken(st, iso = false) {
   const { g, dom } = st;
@@ -199,7 +214,12 @@ function stepTrial(st, lvl) {
       if (!(dom[x] & (1 << k))) continue;
       const t = cloneState(st);
       t.dom[x] = 1 << k;
-      if (propagate(t, lvl - 1)) { const _r = emitStep({ tech: `trial${lvl - 1}`, level: lvl, changes: [[x, dom[x] & ~(1 << k)]], focus: [g.edges[x].a, g.edges[x].b], edges: [x] }); if (_r) return _r; }
+      if (propagate(t, lvl - 1)) {
+        const ghost = [];
+        for (let y = 0; y < dom.length; y++) if (y !== x && size(t.dom[y]) === 1 && size(dom[y]) > 1) ghost.push([y, lo(t.dom[y])]);
+        const _r = emitStep({ tech: `trial${lvl - 1}`, level: lvl, changes: [[x, dom[x] & ~(1 << k)]], focus: [g.edges[x].a, g.edges[x].b], edges: [x], why: { hyp: [x, k], ghost, fail: whyBroken(t, lvl - 1 >= 2) } });
+        if (_r) return _r;
+      }
     }
   }
   return null;

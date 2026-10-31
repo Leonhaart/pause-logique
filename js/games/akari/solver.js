@@ -84,6 +84,30 @@ export function newState(p) {
 }
 const cloneState = (st) => ({ ...st, cs: st.cs.slice() });
 
+/** Cause de la violation : { kind: twobulbs|dark|wallOver|wallUnder, ... } ou null. */
+export function whyBroken(st) {
+  const { cs, g } = st;
+  for (const i of g.whites) {
+    const vi = g.view[i];
+    if (cs[i] === 1) {
+      for (const j of vi) if (j !== i && cs[j] === 1) return { kind: 'twobulbs', cells: [i, j] };
+    } else {
+      let possible = false;
+      for (const j of vi) if (cs[j] !== 0) { possible = true; break; }
+      if (!possible) return { kind: 'dark', cell: i };
+    }
+  }
+  for (const w of g.numbered) {
+    let b = 0;
+    let u = 0;
+    for (const j of g.nbr[w]) { if (cs[j] === 1) b++; else if (cs[j] === -1) u++; }
+    const k = st.p.num[w];
+    if (b > k) return { kind: 'wallOver', cell: w, k };
+    if (b + u < k) return { kind: 'wallUnder', cell: w, k };
+  }
+  return null;
+}
+
 /** Une règle est déjà violée. */
 export function broken(st) {
   const { cs, g } = st;
@@ -219,7 +243,12 @@ function stepTrial(st, lvl) {
     for (const v of [1, 0]) {
       const t = cloneState(st);
       t.cs[i] = v;
-      if (propagate(t, lvl - 1)) { const _r = emitStep({ tech: `trial${lvl - 1}`, level: lvl, cells: [[i, 1 - v]], focus: [i] }); if (_r) return _r; }
+      if (propagate(t, lvl - 1)) {
+        const ghost = [];
+        for (let j = 0; j < t.cs.length; j++) if (j !== i && t.cs[j] === 1 && st.cs[j] === -1) ghost.push([j, 1]);
+        const _r = emitStep({ tech: `trial${lvl - 1}`, level: lvl, cells: [[i, 1 - v]], focus: [i], why: { hyp: [i, v], ghost, fail: whyBroken(t) } });
+        if (_r) return _r;
+      }
     }
   }
   return null;

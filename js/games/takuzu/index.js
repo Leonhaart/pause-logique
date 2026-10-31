@@ -109,6 +109,15 @@ export default {
       showHint();
     }
     const SYM = (v) => (v === 1 ? '●' : '○');
+    /** Cases de la ligne/colonne (ou du triplet) en cause dans l'impasse. */
+    function failCellsOf(f) {
+      if (!f) return [];
+      if (f.kind === 'three') return f.cells;
+      const { lineCells } = geo(N);
+      const us = f.kind === 'dup' ? [f.u, f.u2] : [f.u];
+      return us.flatMap((u) => lineCells[u]);
+    }
+    const unitLabel = (u) => (u < N ? t('tk.u.row', { n: u + 1 }) : t('tk.u.col', { n: u - N + 1 }));
     /** Paramètres concrets : ligne/colonne, symboles, positions le long de la ligne. */
     function explain(s) {
       const [ti, tv] = s.cells[0];
@@ -122,6 +131,15 @@ export default {
         if (s.focus) p.pos = s.focus.map(p.at).join(', ');
         delete p.at;
       }
+      if (s.tech === 'trial' && s.why) {
+        const w = s.why;
+        p.hs = SYM(w.hyp[1]);
+        p.rx = Math.floor(w.hyp[0] / N) + 1;
+        p.cx = (w.hyp[0] % N) + 1;
+        p.n = w.ghost.length;
+        const f = w.fail;
+        p.fail = f ? t(`tk.fail.${f.kind}`, { unit: unitLabel(f.u ?? 0), unit2: f.u2 != null ? unitLabel(f.u2) : '', sym: SYM(f.sym ?? 1), n: N / 2 }) : '';
+      }
       return p;
     }
     function showHint() {
@@ -132,7 +150,7 @@ export default {
           action: { label: t('tk.hint.place'), run: () => { for (const [i, v] of s.cells) marks[i] = v; commit(); } },
         };
       } else {
-        let text = t(`tk.hint.${s.tech}`, explain(s));
+        let text = t(s.tech === 'trial' && s.why?.ghost?.length ? 'tk.hint.trialChain' : `tk.hint.${s.tech}`, explain(s));
         const names = [...new Set((s.prior ?? []).filter((x) => x !== s.tech))].map((x) => t(`tk.prior.${x}`));
         if (names.length) text += ' ' + t('tk.hint.prior', { list: names.join(', ') });
         message = { text, action: { label: t('tk.hint.reveal'), run: () => askHint() } };
@@ -195,8 +213,11 @@ export default {
       if (s && !hint.revealed) {
         for (const u of s.units ?? []) for (const c of lineCells[u]) lineSet.add(c);
         for (const c of s.focus ?? []) focusSet.add(c);
-        if (s.tech === 'search' || s.tech === 'trial') for (const [i] of s.cells) targetSet.add(i);
+        if (s.tech === 'search') for (const [i] of s.cells) targetSet.add(i);
       }
+      const why = s && !hint.revealed && s.tech === 'trial' ? s.why : null;
+      const ghostMap = new Map((why?.ghost ?? []).map(([i, v]) => [i, v]));
+      const failSet = new Set(why ? failCellsOf(why.fail) : []);
       const revealSet = s && hint.revealed ? new Set(s.cells.map(([i]) => i)) : null;
       const names = [t('tk.zero'), t('tk.one')];
       for (let i = 0; i < NN; i++) {
@@ -209,6 +230,12 @@ export default {
         if (lineSet.has(i)) cls.push('hint-unit');
         if (focusSet.has(i)) cls.push('hint-focus');
         if (targetSet.has(i) || (revealSet && revealSet.has(i))) cls.push('hint-cell');
+        cells[i].dataset.g = '';
+        if (why) {
+          if (i === why.hyp[0]) { cls.push('hint-hyp'); cells[i].dataset.g = SYM(why.hyp[1]); }
+          else if (ghostMap.has(i)) { cls.push('hint-ghost'); cells[i].dataset.g = SYM(ghostMap.get(i)); }
+          if (failSet.has(i)) cls.push('hint-fail');
+        }
         if (i === sel && !finished) cls.push('sel');
         cells[i].className = cls.join(' ');
         cells[i].setAttribute('aria-label', t('tk.cellAria', { r: Math.floor(i / N) + 1, c: (i % N) + 1 }) + ', ' + (v < 0 ? t('tk.empty') : names[v]));

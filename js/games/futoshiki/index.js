@@ -193,6 +193,9 @@ export default {
       if (s.tech === 'trial') {
         const [x] = s.focus;
         p.rx = row(x) + 1; p.cx = col(x) + 1; p.t = s.digit;
+        p.n = s.why?.ghost?.length ?? 0;
+        const fc = s.why?.fail?.cell;
+        p.fr = fc >= 0 ? row(fc) + 1 : 0; p.fc = fc >= 0 ? col(fc) + 1 : 0;
       }
       return p;
     }
@@ -204,7 +207,7 @@ export default {
           action: { label: t('fu.hint.place', { d: hn.digit }), run: () => setValue(hn.cell, hn.digit) },
         };
       } else {
-        let text = t(`fu.hint.${hn.step.tech}`, explain(hn));
+        let text = t(hn.step.tech === 'trial' && hn.step.why?.ghost?.length ? 'fu.hint.trialChain' : `fu.hint.${hn.step.tech}`, explain(hn));
         if (hn.step.tech === 'single' && hn.cell !== hn.step.focus[0]) text += ' ' + t('fu.hint.then', { r: row(hn.cell) + 1, c: col(hn.cell) + 1 });
         const names = [...new Set(hn.prior)].map((p) => t(`fu.prior.${p}`));
         if (names.length) text += ' ' + t('fu.hint.prior', { list: names.join(', ') });
@@ -220,6 +223,8 @@ export default {
       const peerSet = sel >= 0 ? new Set(peersOf(sel)) : null;
       const lineSet = new Set();
       const focusSet = new Set();
+      const why = hint && !hint.revealed && hint.step.tech === 'trial' ? hint.step.why : null;
+      const ghostMap = new Map((why?.ghost ?? []).map(([i, d]) => [i, d]));
       if (hint && !hint.revealed) {
         for (const u of hint.step.units ?? []) {
           for (let k = 0; k < N; k++) lineSet.add(u < N ? u * N + k : k * N + (u - N));
@@ -238,7 +243,15 @@ export default {
         if (i === sel && !finished) cls.push('sel');
         if ((mode === 'live' && isWrong(i)) || wrong.has(i)) cls.push('bad');
         if (lineSet.has(i)) cls.push('hint-unit');
-        if (focusSet.has(i) || (hint?.revealed && hint.cell === i)) cls.push('hint-cell');
+        if (why) {
+          if (i === why.hyp[0]) cls.push('hint-hyp');
+          else if (ghostMap.has(i)) cls.push('hint-ghost');
+          if (i === why.fail?.cell) cls.push('hint-fail');
+          cells[i].el.dataset.g = i === why.hyp[0] ? String(why.hyp[1]) : ghostMap.has(i) ? String(ghostMap.get(i)) : '';
+        } else {
+          cells[i].el.dataset.g = '';
+          if (focusSet.has(i) || (hint?.revealed && hint.cell === i)) cls.push('hint-cell');
+        }
         cells[i].el.className = cls.join(' ');
         cells[i].val.textContent = v || '';
         cells[i].noteEls.forEach((s, k) => { s.textContent = notes[i] & bit(k + 1) ? String(k + 1) : ''; });

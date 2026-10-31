@@ -22,3 +22,8 @@
 @media (max-width: 699px) {
   .ha .tools { margin-top: auto; }
 }
+
+.ha-ghost { stroke: var(--accent); stroke-width: 0.09; stroke-linecap: round; stroke-dasharray: 0.16 0.12; opacity: .75; }
+.ha-hyp { font: 800 0.5px var(--sans); fill: var(--accent); text-anchor: middle; pointer-events: none; }
+.ha-failmark { fill: color-mix(in srgb, var(--danger) 30%, transparent); stroke: var(--danger); stroke-width: 0.06; }
+.ha-isl.hint-fail .ha-land { fill: color-mix(in srgb, var(--danger) 30%, var(--surface)); stroke: var(--danger); stroke-width: 0.12; }

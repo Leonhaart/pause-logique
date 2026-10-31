@@ -164,6 +164,24 @@ export function place(st, i) {
   for (const nb of neigh[i]) if (st.cs[nb] === 1) st.cs[nb] = 0;
 }
 
+/** Première unité non satisfaite sans candidate (la cause de l'impasse), ou -1. */
+export function deadUnit(st) {
+  for (let u = 0; u < st.sat.length; u++) {
+    if (st.sat[u]) continue;
+    let any = false;
+    for (const c of st.unitCells[u]) if (st.cs[c] === 1) { any = true; break; }
+    if (!any) return u;
+  }
+  return -1;
+}
+
+/** Étoiles imposées par l'hypothèse (cases qui n'étaient pas des étoiles avant). */
+function starsAdded(st, t, x) {
+  const out = [];
+  for (let i = 0; i < t.cs.length; i++) if (i !== x && t.cs[i] === 2 && st.cs[i] !== 2) out.push([i, 2]);
+  return out;
+}
+
 /** Une unité non satisfaite n'a plus de candidate : impasse. */
 export function dead(st) {
   for (let u = 0; u < st.sat.length; u++) {
@@ -278,7 +296,7 @@ function stepTrial(st, propLevel) {
     const t = cloneState(st);
     place(t, x);
     if (propagate(t, propLevel)) {
-      { const _r = emitStep({ tech: `trial${propLevel}`, level: techLevel(`trial${propLevel}`), elim: [x], units: unitsOf(st, x) }); if (_r) return _r; }
+      { const _r = emitStep({ tech: `trial${propLevel}`, level: techLevel(`trial${propLevel}`), elim: [x], units: unitsOf(st, x), targets: [deadUnit(t)], cell: x, why: { hyp: [x, 2], ghost: starsAdded(st, t, x) } }); if (_r) return _r; }
     }
   }
   return null;

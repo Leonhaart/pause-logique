@@ -57,6 +57,29 @@ const cloneState = (st) => ({ ...st, cs: st.cs.slice() });
 
 const lineTarget = (p, u) => (u < p.N ? p.rows[u] : p.cols[u - p.N]);
 
+let lastFail = null;
+/** Cause de la violation : { kind: touch|line|tree|orphan, ... } ou null. */
+export function whyBroken(st) {
+  const { N, p, cs } = st;
+  const { n4, n8, lines } = geo(N);
+  for (let i = 0; i < cs.length; i++) {
+    if (cs[i] === 1) for (const j of n8[i]) if (cs[j] === 1) return { kind: 'touch', cells: [i, j] };
+  }
+  for (let u = 0; u < lines.length; u++) {
+    let tents = 0;
+    let unk = 0;
+    for (const i of lines[u]) { if (cs[i] === 1) tents++; else if (cs[i] === -1) unk++; }
+    const t = lineTarget(p, u);
+    if (tents > t) return { kind: 'over', u, target: t };
+    if (tents + unk < t) return { kind: 'under', u, target: t };
+  }
+  for (let i = 0; i < cs.length; i++) {
+    if (cs[i] === 2 && !n4[i].some((j) => cs[j] === -1 || cs[j] === 1)) return { kind: 'tree', cell: i };
+    if (cs[i] === 1 && !n4[i].some((j) => cs[j] === 2)) return { kind: 'orphan', cell: i };
+  }
+  return null;
+}
+
 /** Une règle est déjà violée. */
 export function broken(st) {
   const { N, p, cs } = st;
@@ -201,7 +224,7 @@ function stepLine(st) {
       rec(idx + 1, left);
     };
     rec(0, need);
-    if (!total) return { contra: true };
+    if (!total) { lastFail = { kind: 'noarr', u }; return { contra: true }; }
     const out = [];
     unk.forEach((k, idx) => {
       if (hits[idx] === total) out.push([line[k], 1]);
@@ -230,7 +253,13 @@ function stepTrial(st) {
     for (const v of [1, 0]) {
       const t = cloneState(st);
       t.cs[i] = v;
-      if (propagate(t, 4)) { const _r = emitStep({ tech: 'trial', level: 5, cells: [[i, 1 - v]], units: [], focus: [i] }); if (_r) return _r; }
+      lastFail = null;
+      if (propagate(t, 4)) {
+        const ghost = [];
+        for (let j = 0; j < t.cs.length; j++) if (j !== i && t.cs[j] === 1 && st.cs[j] === -1) ghost.push([j, 1]);
+        const _r = emitStep({ tech: 'trial', level: 5, cells: [[i, 1 - v]], units: [], focus: [i], why: { hyp: [i, v], ghost, fail: whyBroken(t) ?? lastFail } });
+        if (_r) return _r;
+      }
     }
   }
   return null;

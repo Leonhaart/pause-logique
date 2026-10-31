@@ -91,6 +91,8 @@ export function newState(p) {
 }
 const cloneState = (st) => ({ ...st, cand: st.cand.slice() });
 
+let lastFail = null;
+
 /** Une règle est déjà violée. */
 export function broken(st) {
   const { g, cand } = st;
@@ -218,7 +220,7 @@ function gac(st) {
     for (let x = 0; x < run.cells.length; x++) {
       const i = run.cells[x];
       const m = cand[i] & sup[x];
-      if (!m) return true;
+      if (!m) { lastFail = { kind: 'support', cell: i, run: ri }; return true; }
       if (m !== cand[i]) {
         cand[i] = m;
         for (const rj of g.runOf[i]) if (rj >= 0 && rj !== ri && !queued[rj]) { queued[rj] = 1; queue.push(rj); }
@@ -297,7 +299,14 @@ function stepTrial(st, lvl) {
       if (!(cand[i] & bit(d))) continue;
       const t = cloneState(st);
       t.cand[i] = bit(d);
-      if (propagate(t, lvl - 1)) { const _r = emitStep({ tech: `trial${lvl - 1}`, level: lvl, changes: [[i, cand[i] & ~bit(d)]], focus: [i], runs: g.runOf[i].filter((r) => r >= 0) }); if (_r) return _r; }
+      lastFail = null;
+      if (propagate(t, lvl - 1)) {
+        const ghost = [];
+        for (const j of g.whites) if (j !== i && single(t.cand[j]) && !single(cand[j])) ghost.push([j, digitOf(t.cand[j])]);
+        const fail = lastFail ?? { kind: 'empty', cell: g.whites.find((j) => !t.cand[j]) };
+        const _r = emitStep({ tech: `trial${lvl - 1}`, level: lvl, changes: [[i, cand[i] & ~bit(d)]], focus: [i], runs: g.runOf[i].filter((r) => r >= 0), why: { hyp: [i, d], ghost, fail } });
+        if (_r) return _r;
+      }
     }
   }
   return null;

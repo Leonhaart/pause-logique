@@ -168,6 +168,7 @@ function applyMasks(cells, N, isRow, k, addF, addE) {
 }
 
 /** Propagation par lignes complètes jusqu'à stabilité. Renvoie false en cas de contradiction. */
+let lastFail = null;
 function fixpoint(cells, N, rows, cols) {
   let moved = true;
   while (moved) {
@@ -178,7 +179,7 @@ function fixpoint(cells, N, rows, cols) {
       for (let k = 0; k < N; k++) {
         const { f, e } = lineMasks(cells, N, isRow, k);
         const r = solveLine(clues[k], N, f, e);
-        if (!r) return false;
+        if (!r) { lastFail = { isRow, k }; return false; }
         if (r.f & ~f || r.e & ~e) {
           applyMasks(cells, N, isRow, k, r.f, r.e);
           moved = true;
@@ -187,6 +188,13 @@ function fixpoint(cells, N, rows, cols) {
     }
   }
   return true;
+}
+
+/** Pourquoi l'hypothèse (case i = v) échoue : cases imposées en chaîne et ligne ou colonne impossible. */
+function whyOf(cells, t, i, v) {
+  const ghost = [];
+  for (let j = 0; j < cells.length; j++) if (j !== i && !cells[j] && t[j] === 1) ghost.push([j, 1]);
+  return { hyp: [i, v], ghost, fail: lastFail };
 }
 
 /** Nombre de solutions (plafonné), par recherche avec propagation. */
@@ -267,7 +275,7 @@ export function findStep(cells, N, rows, cols, maxLevel = 4) {
       for (const v of [1, 2]) {
         const t = cells.slice();
         t[i] = v;
-        if (!fixpoint(t, N, rows, cols)) return { tech: 'trial', level: 4, isRow: null, k: -1, cells: [i], values: [v === 1 ? 2 : 1] };
+        if (!fixpoint(t, N, rows, cols)) return { tech: 'trial', level: 4, isRow: null, k: -1, cells: [i], values: [v === 1 ? 2 : 1], why: whyOf(cells, t, i, v) };
       }
     }
   }
@@ -307,7 +315,7 @@ export function allSteps(cells, N, rows, cols, maxLevel = 4) {
       for (const v of [1, 2]) {
         const t = cells.slice();
         t[i] = v;
-        if (!fixpoint(t, N, rows, cols)) { out.push({ tech: 'trial', level: 4, isRow: null, k: -1, cells: [i], values: [v === 1 ? 2 : 1] }); break; }
+        if (!fixpoint(t, N, rows, cols)) { out.push({ tech: 'trial', level: 4, isRow: null, k: -1, cells: [i], values: [v === 1 ? 2 : 1], why: whyOf(cells, t, i, v) }); break; }
       }
     }
   }

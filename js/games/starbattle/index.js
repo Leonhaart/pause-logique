@@ -262,11 +262,12 @@ export default {
       } else {
         const k = s.tech.startsWith('set') ? +s.tech.slice(3) : 0;
         const cap = (x) => x.charAt(0).toUpperCase() + x.slice(1);
-        const p = { k, units: cap(unitList(s.units ?? [])), targets: unitList(s.targets ?? []) };
+        const dead = s.targets?.[0];
+        const p = { k, r: s.cell != null ? Math.floor(s.cell / N) + 1 : 0, c: s.cell != null ? (s.cell % N) + 1 : 0, dead: dead != null ? (dead >= 2 * N ? t('sb.u.regDead') : unitName(dead)).replace(/^./, (x) => x.toLowerCase()) : '', units: cap(unitList(s.units ?? [])), targets: unitList(s.targets ?? []) };
         let text = s.tech === 'single' ? t('sb.hint.single', p)
           : k === 1 ? t('sb.hint.set1', p)
           : k > 1 ? t('sb.hint.setN', p)
-          : s.tech.startsWith('trial') ? t('sb.hint.trial')
+          : s.tech.startsWith('trial') ? t(s.why?.ghost?.length ? 'sb.hint.trialChain' : 'sb.hint.trial', { ...p, n: s.why?.ghost?.length ?? 0 })
           : t('sb.hint.search');
         if (s.prior?.length) text += ' ' + t('sb.hint.prior');
         message = { text, action: { label: t('sb.hint.reveal'), run: () => askHint() } };
@@ -373,7 +374,9 @@ export default {
         for (const u of s.units ?? []) for (const c of unitCellsOf[u]) unitSet.add(c);
         for (const u of s.targets ?? []) for (const c of unitCellsOf[u]) targetSet.add(c);
       }
+      const isTrial = !!s && s.tech.startsWith('trial') && !hint.revealed;
       const hintCell = s ? (s.place != null ? s.place : s.tech.startsWith('trial') ? s.elim[0] : -1) : -1;
+      const ghostSet = isTrial ? new Set((s.why?.ghost ?? []).map(([i]) => i)) : null;
       const elimSet = s && hint.revealed && s.elim ? new Set(s.elim) : null;
       for (let i = 0; i < NN; i++) {
         const v = visual(i, d);
@@ -383,11 +386,14 @@ export default {
         if (marks[i] === 1 && !d[i]) cls.push('manual');
         if ((mode === 'live' && isWrong(i)) || wrong.has(i)) cls.push('bad');
         if (unitSet.has(i)) cls.push('hint-unit');
-        if (targetSet.has(i)) cls.push('hint-target');
-        if (i === hintCell && (hint.revealed || s.tech.startsWith('trial'))) cls.push('hint-cell');
+        if (targetSet.has(i)) cls.push(isTrial ? 'hint-fail' : 'hint-target');
+        if (isTrial && i === hintCell) cls.push('hint-hyp');
+        else if (ghostSet?.has(i)) cls.push('hint-ghost');
+        else if (i === hintCell && hint.revealed) cls.push('hint-cell');
         if (elimSet && elimSet.has(i)) cls.push('hint-elim');
         if (i === sel && !finished) cls.push('sel');
         cells[i].el.className = cls.join(' ');
+        cells[i].el.dataset.g = isTrial && (i === hintCell || ghostSet.has(i)) ? '★' : '';
         cells[i].el.setAttribute('aria-label', t('sb.cellAria', { r: row[i] + 1, c: col[i] + 1, g: reg[i] + 1 }) + ', ' + t(v === 2 ? 'sb.star' : v === 1 ? 'sb.cross' : 'sb.empty'));
       }
       tools.undo.disabled = !hist.canUndo || finished;

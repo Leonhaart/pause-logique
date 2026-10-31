@@ -79,3 +79,48 @@ test('futoshiki : les placements d’indice sont justes et suivent la dernière 
     }
   }
 });
+
+import { BANK as SB } from '../js/games/starbattle/bank.js';
+import * as sb from '../js/games/starbattle/solver.js';
+
+test('starbattle : un essai logique désigne l’unité qui se retrouve sans case', () => {
+  let seen = 0;
+  for (const N of [8, 10]) {
+    for (const e of SB[N].hard.slice(0, 6)) {
+      const reg = sb.parseReg(typeof e === 'string' ? e : e.reg ?? e[0], N);
+      const st = sb.newState(reg, N);
+      for (let g = 0; g < 60 && st.stars < N; g++) {
+        const steps = sb.allSteps(st, 5);
+        if (!steps.length) break;
+        const s = steps[0];
+        if (s.tech.startsWith('trial')) { seen++; assert.ok(s.targets[0] >= 0); assert.ok(s.cell >= 0); }
+        if (s.place != null) sb.place(st, s.place); else for (const c of s.elim) if (st.cs[c] === 1) st.cs[c] = 0;
+      }
+    }
+  }
+  assert.ok(seen > 0);
+});
+
+import { BANK as HA } from '../js/games/hashi/bank.js';
+import * as ha from '../js/games/hashi/solver.js';
+
+test('hashi : un essai logique donne l’hypothèse, la chaîne et la cause de l’impasse', () => {
+  let seen = 0;
+  for (const N of [7, 9]) {
+    for (const e of HA[N].hard.slice(0, 6)) {
+      const st = ha.newState(ha.parsePuz(e, N));
+      for (let g = 0; g < 300; g++) {
+        const steps = ha.allSteps(st, 4);
+        if (!steps.length) break;
+        const s = steps[0];
+        if (s.tech.startsWith('trial')) {
+          seen++;
+          assert.ok(s.why.fail && ['empty', 'over', 'under', 'iso'].includes(s.why.fail.kind));
+          assert.ok(Array.isArray(s.why.ghost));
+        }
+        for (const [x, m] of s.changes) st.dom[x] &= m;
+      }
+    }
+  }
+  assert.ok(seen > 0);
+});

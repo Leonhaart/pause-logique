@@ -27,3 +27,9 @@
 @media (max-width: 699px) {
   .sl .tools { margin-top: auto; }
 }
+
+.sl-ghost.hyp { opacity: 0.9; }
+.sl-ghost.hypx { stroke-dasharray: 0.05 0.22; }
+.sl-ghost.chain { opacity: 0.55; stroke-dasharray: 0.2 0.14; }
+.sl-fill.fail { fill: color-mix(in srgb, var(--danger) 32%, transparent); }
+.sl-halo.fail { fill: var(--danger); opacity: 0.6; }

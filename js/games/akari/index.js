@@ -142,6 +142,17 @@ export default {
         p.lr = row(lit) + 1;
         p.lc = col(lit) + 1;
       }
+      if (step.tech.startsWith('trial') && step.why) {
+        const w = step.why;
+        p.rx = row(w.hyp[0]) + 1;
+        p.cx = col(w.hyp[0]) + 1;
+        p.n = w.ghost.length;
+        const f = w.fail;
+        if (f) {
+          const c0 = f.cell ?? f.cells[0];
+          p.fail = t(`ak.fail.${f.kind}`, { fr: row(c0) + 1, fc: col(c0) + 1, k: f.k ?? 0 });
+        } else p.fail = '';
+      }
       return p;
     }
     function showHint() {
@@ -152,7 +163,7 @@ export default {
           action: { label: t('ak.hint.place'), run: () => { for (const [i] of hn.cells) marks[i] = 1; sel = hn.cells[0][0]; commit(); } },
         };
       } else {
-        let text = t(`ak.hint.${hn.step.tech}`, hn.info);
+        let text = t(hn.step.tech.startsWith('trial') && hn.step.why?.ghost?.length ? 'ak.hint.trialChain' : hn.step.tech.startsWith('trial') ? 'ak.hint.trial' : `ak.hint.${hn.step.tech}`, hn.info);
         const names = [...new Set(hn.prior.filter((p) => p !== hn.step.tech).map((p) => t(`ak.prior.${p}`)))];
         if (names.length) text += ' ' + t('ak.hint.prior', { list: names.join(', ') });
         message = { text, action: { label: t('hint.reveal'), run: () => askHint() } };
@@ -214,6 +225,9 @@ export default {
         for (const i of s.lines ?? []) { lineSet.add(i); for (const j of g.view[i] ?? []) lineSet.add(j); }
         for (const i of s.focus ?? []) focusSet.add(i);
       }
+      const why = s && !hint.revealed && s.tech.startsWith('trial') ? s.why : null;
+      const ghostSet = new Set((why?.ghost ?? []).map(([i]) => i));
+      const failSet = new Set(why?.fail ? (why.fail.cells ?? [why.fail.cell]) : []);
       const revealSet = hint?.revealed ? new Set(hint.cells.map(([i]) => i)) : null;
       for (let i = 0; i < NN; i++) {
         const cls = ['ak-cell'];
@@ -233,6 +247,12 @@ export default {
         if (lineSet.has(i)) cls.push('hint-unit');
         if (focusSet.has(i)) cls.push('hint-focus');
         if (revealSet?.has(i)) cls.push('hint-cell');
+        cells[i].dataset.g = '';
+        if (why) {
+          if (i === why.hyp[0]) { cls.push('hint-hyp'); cells[i].dataset.g = why.hyp[1] === 1 ? '●' : '✕'; }
+          else if (ghostSet.has(i)) { cls.push('hint-ghost'); cells[i].dataset.g = '●'; }
+          if (failSet.has(i)) cls.push('hint-fail');
+        }
         if (i === sel && !finished) cls.push('sel');
         cells[i].className = cls.join(' ');
         const what = isWall(i) ? (puz.num[i] >= 0 ? t('ak.wallNum', { n: puz.num[i] }) : t('ak.wall')) : marks[i] === 1 ? t('ak.bulb') : marks[i] === 2 ? t('ak.dot') : lit[i] ? t('ak.lit') : t('ak.empty');

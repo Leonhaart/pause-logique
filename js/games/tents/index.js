@@ -166,6 +166,14 @@ export default {
       hint = { ...found, revealed: false };
       showHint();
     }
+    /** Cases en cause dans l'impasse. */
+    function failCellsOf(f) {
+      if (!f) return [];
+      if (f.kind === 'touch') return f.cells;
+      if (f.cell != null) return [f.cell];
+      return f.u != null ? lines[f.u] : [];
+    }
+    function unitLabel(u) { return u < N ? t('te.u.row', { n: u + 1 }) : t('te.u.col', { n: u - N + 1 }); }
     /** Paramètres concrets du texte : ligne/colonne, arbre, case de la tente. */
     function explain(hn) {
       const s = hn.step;
@@ -181,6 +189,14 @@ export default {
         p.tr = row(tr) + 1;
         p.tc = col(tr) + 1;
       }
+      if (s.tech === 'trial' && s.why) {
+        const w = s.why;
+        p.rx = row(w.hyp[0]) + 1;
+        p.cx = col(w.hyp[0]) + 1;
+        p.n = w.ghost.length;
+        const f = w.fail;
+        p.fail = f ? t(`te.fail.${f.kind}`, { unit: f.u != null ? unitLabel(f.u) : '', target: f.target ?? 0 }) : '';
+      }
       return p;
     }
     function showHint() {
@@ -191,7 +207,7 @@ export default {
           action: { label: t('te.hint.place'), run: () => { for (const [i] of hn.cells) marks[i] = 1; commit(); } },
         };
       } else {
-        let text = t(`te.hint.${hn.step.tech}`, explain(hn));
+        let text = t(hn.step.tech === 'trial' && hn.step.why?.ghost?.length ? 'te.hint.trialChain' : `te.hint.${hn.step.tech}`, explain(hn));
         const names = hn.prior.map((p) => t(`te.prior.${p}`));
         if (names.length) text += ' ' + t('te.hint.prior', { list: names.join(', ') });
         message = { text, action: { label: t('hint.reveal'), run: () => askHint() } };
@@ -257,6 +273,9 @@ export default {
         for (const u of s.units ?? []) for (const i of lines[u]) lineSet.add(i);
         for (const i of s.focus ?? []) focusSet.add(i);
       }
+      const why = s && !hint.revealed && s.tech === 'trial' ? s.why : null;
+      const ghostSet = new Set((why?.ghost ?? []).map(([i]) => i));
+      const failSet = new Set(why ? failCellsOf(why.fail) : []);
       const revealSet = hint?.revealed ? new Set(hint.cells.map(([i]) => i)) : null;
       for (let i = 0; i < NN; i++) {
         const cls = ['te-cell'];
@@ -271,6 +290,12 @@ export default {
         if (lineSet.has(i)) cls.push('hint-unit');
         if (focusSet.has(i)) cls.push('hint-focus');
         if (revealSet?.has(i)) cls.push('hint-cell');
+        cells[i].dataset.g = '';
+        if (why) {
+          if (i === why.hyp[0]) { cls.push('hint-hyp'); cells[i].dataset.g = why.hyp[1] === 1 ? '▲' : '≈'; }
+          else if (ghostSet.has(i)) { cls.push('hint-ghost'); cells[i].dataset.g = '▲'; }
+          if (failSet.has(i)) cls.push('hint-fail');
+        }
         if (i === sel && !finished) cls.push('sel');
         cells[i].className = cls.join(' ');
         cells[i].setAttribute('aria-label', t('te.cellAria', { r: row(i) + 1, c: col(i) + 1 }) + ', ' + t(isTree(i) ? 'te.tree' : marks[i] === 1 ? 'te.tent' : visual(i, d) === 2 ? 'te.grass' : 'te.empty'));
